@@ -27,4 +27,3 @@ palindrome:
 	lw a0, 44($fp)		# preparo a0 para pasarselo a mymalloc
 	mymalloc
 	# GETCH 
-	
