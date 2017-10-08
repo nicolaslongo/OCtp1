@@ -4,8 +4,36 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
+#include "palindrome.h"
 
 int palindrome(int ifd, size_t ibytes, int ofd, size_t obytes);
+
+int aperturaDeArchivos(char* inName, FILE* input_file, char* outName, FILE* output_file){
+	if (inName == NULL){
+		input_file = stdin;
+	}
+	else{
+		if ((input_file = fopen(inName, "rt")) == NULL){
+			if (fprintf(stderr,"No se pudo abrir el archivo el archivo de entrada: %s\n", strerror(errno)) < 0){
+				fprintf(stderr, "Fallo en la ejecucion de la funcion fprintf o printf");
+			}
+			return -1;
+		}
+	}
+	if (outName == NULL){
+		output_file = stdout;
+	}
+	else{
+		if ((output_file = fopen(outName, "wt")) == NULL){
+			if (fprintf(stderr,"No se pudo abrir el archivo el archivo de salida: %s\n", strerror(errno)) < 0){
+				fprintf(stderr, "Fallo en la ejecucion de la funcion fprintf o printf");
+			}
+			return -1;
+		}
+	}
+	return 0;
+}
+		
 
 char* seIngresoParametro_io(char* par, int len, char** argv){
 	if (strcmp(par, "-i") == 0){
@@ -131,9 +159,9 @@ int main(int argc, char** argv){
   bufferIn = seIngresoParametro_buf("-I", argc, argv);
   bufferOut = seIngresoParametro_buf("-O", argc, argv);
   printf("%s  %s  %zu  %zu\n", input_fileName, output_fileName, bufferIn, bufferOut);
-  FILE* input_file
-  FILE* output_file
-  if (aperturaDeArchivos(input_file, output_file) == -1) {
+  FILE* input_file = NULL;
+  FILE* output_file = NULL;
+  if (aperturaDeArchivos(input_fileName, input_file, output_fileName, output_file) == -1) {
   	if (fprintf(stderr, "Alguno de los archivos ingresados no pudo ser abierto.\n") < 0){
 	fprintf(stderr, "Fallo en la ejecucion de la funcion fprintf o printf");
 	}
@@ -141,6 +169,6 @@ int main(int argc, char** argv){
   }
   int ifd = fileno(input_file);
   int ofd = fileno(output_file);
-  return 0; //ACA LLAMAMOS A LA FUNCION PALINDROME DE MIPS
+  return palindrome(ifd, bufferIn, ofd, bufferOut); //ACA LLAMAMOS A LA FUNCION PALINDROME DE MIPS
 }
 
