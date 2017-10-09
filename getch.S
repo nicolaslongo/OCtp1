@@ -27,7 +27,8 @@ _if:
 	beq t0, a1, _lectura_inicial
 
 #compruebo que quedan caracteres por leer
-	lw t1, POS_INICIAL_IB
+	la t2, POS_INICIAL_IB
+	lw t1, 0(t2)
 	subu t0, a0, t1		# le resto la pos_inicial a la pos_actual
 	lw t1, TAM_IB
 	subu t0, t0, t1		# al resultado, le resto el tamaño. Si son iguales, tendré que pasar al syscall
@@ -41,10 +42,12 @@ _lectura:
 
 _rellenar_buffer:
 	li v0, SYS_read
-	li a0, FDESCRIPTOR_DE_LECTURA
-	lw a1, POS_INICIAL_IB		# esto es más bien innecesario pero me aseguro que esté acá. acá está la pos_inicial del buffarini
+	la t0, FDESCRIPTOR_DE_LECTURA
+	lw a0, 0(t0)
+	la t0, POS_INICIAL_IB
+	lw a1, 0(t0)			
 	sw a1, 16($fp)		# me guardo la posición inicial en LTA por si tengo que hacer una relectura
-	lw a2, TAM_IB		# y acá está el tamaño. lo mismo que arriba
+	lw a2, IBYTES		# y acá está el tamaño. lo mismo que arriba
 	syscall
 
 # Casos posibles:
@@ -55,11 +58,13 @@ _rellenar_buffer:
 _comprobacion:	
 	bltz a3, _error_en_syscall		
 	beqz v0, _eof
-	lw t1, IBYTES					
+	la t2, IBYTES
+	lw t1, 0(t2)					
 	subu t0, v0, t1
 	bgtz t0, _relectura				# si pasa ésta línea, entonces a3=0 y v0=ibytes
 
-	lw t0, POS_INICIAL_IB
+	la t2, POS_INICIAL_IB
+	lw t0, 0(t2)
 	sw t0, 40($fp)					# mi pos_actual es pos_inicial
 	b _lectura
 
@@ -78,7 +83,8 @@ _relectura:
 	add t0, t0, v0			# mi nueva posición inicial, será la anterior + los caracteres leídos
 	sw t0, 16($fp)			# me guardo la nueva posición inicial temporal en LTA
 	move a1, t0
-	li a0, FDESCRIPTOR_DE_LECTURA
+	la t3, FDESCRIPTOR_DE_LECTURA
+	lw a0, 0(t3)
 	lw t1, 48($fp)
 	subu t0, t1, v0		# mi nuevo tamaño será el tamaño anterior - los caracteres leídos
 	move a2, t0

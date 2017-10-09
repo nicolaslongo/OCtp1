@@ -40,10 +40,13 @@ _escritura:
 
 _vaciar_buffer:
 	li v0, SYS_write
-	li a0, FDESCRIPTOR_DE_ESCRITURA
-	lw a1, POS_INICIAL_OB		# acá guardo la posición inicial del buffer
+	la t0, FDESCRIPTOR_DE_ESCRITURA
+	lw a0, 0(t0)
+	la t0, POS_INICIAL_OB
+	lw a1, 0(t0)				# acá guardo la posición inicial del buffer
 	sw a1, 16($fp)				# me guardo la posición inicial en LTA por si tengo que hacer una reescritura
-	lw a2, TAM_OB				# acá guardo el tamaño del buffer
+	la t0, OBYTES
+	lw a2, 0(t0)				# acá guardo el tamaño del buffer
 	syscall
 
 # Acá hay que verificar los 3 posibles casos:
@@ -53,8 +56,11 @@ _vaciar_buffer:
 
 _comprobacion:
 	bltz a3, _error_en_syscall		# si pasa ésta línea, no hubo error
-	bltz v0, TAM_OB					# si pasa ésta línea, entonces a3=0 y v0=obytes
-	lw t0, POS_INICIAL_OB
+	la t3, OBYTES
+	lw t2, 0(t3)
+	bltz v0, t2						# si pasa ésta línea, entonces a3=0 y v0=obytes
+	la t3, POS_INICIAL_OB
+	lw t0, 0(t3)
 	sw t0, 40($fp)					# mi nueva pos_actual es la inicial
 	b _escritura
 
@@ -68,7 +74,8 @@ _reescritura:
 	addu t0, t0, v0			# mi nueva posición inicial, será la anterior + los caracteres escritos
 	sw t0, 26($fp)			# me guardo mi nueva posición inicial temporal en LTA
 	move a1, t0
-	li a0, FDESCRIPTOR_DE_ESCRITURA
+	la t0, FDESCRIPTOR_DE_ESCRITURA
+	lw a0, 0(t0)
 	lw t1, 48($fp)			# cargo en t1 el tamaño del buffer
 	subu a2, t1, v0			# mi nuevo tamaño será el tamaño anterior - los caracteres leídos
 	syscall
