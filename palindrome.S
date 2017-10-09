@@ -23,6 +23,12 @@ palindrome:
 	sw a2, 56($fp)		# salvo el file descriptor del output file
 	sw a3, 60($fp)		# salvo el tamanio del buffer de salida
 
+# me guardo los parámetros como variables globales
+	sw a0, FDESCRIPTOR_DE_LECTURA
+	sw a1, IBYTES
+	sw a2, FDESCRIPTOR_DE_ESCRITURA
+	sw a3, OBYTES
+
 # reservo memoria para el buffer de entrada
 	lw a0, 52($fp)		# preparo a0 para pasarselo a mymalloc
 	jal mymalloc
@@ -30,6 +36,7 @@ palindrome:
 	lw a0, 52($fp)		# preparo a0 para pasarselo a mymalloc, utilizamos el mismo tamanio que el buff in
 	jal mymalloc		# en v0 tengo la posicion de memoria del buffer para palabras
 	sw v0, 20($fp)		# lo salvo en el sf
+	sw v0, POS_INICIAL_IB 	# lo guardo como variable global
 									##########		
 	lw a0, 16($fp)		# preparo los argumentos para getch, en v0 esta la posicion inicial del buffer
 	lw a1, 16($fp)		# la posicion inicial y la actual es la misma en primera instancia
@@ -40,15 +47,14 @@ palindrome:
 	lw t2, 20($fp)		# indica desde que lugar del buffer leer
 
 lecturaArchivo:
-	jal getch				# empiezo a leer
+	jal getch			# empiezo a leer
 	beq v0, zero, finDeLectura	# si devuelve 0, es un EOF, sino sigue
 	sw v0, AUX			# me guardo el char en t3
 	lw t3, AUX
 	sw v0, AUX			# preparo a0 para esEspacio
 	lw a0, AUX
-	b esEspacio			# me fijo si el caracter es un espacio
+	jal esEspacio			# me fijo si el caracter es un espacio
 					# en v0 esta si es un espacio = 1, sino = 0
-_analizoEspacio:
 	bne v0, zero, _analizarPalindromo	
 _sigo:
 	move t0, t3				# aca hay que meter el caracter leido en el buffer de palabras, creo que asi
@@ -121,37 +127,12 @@ _end_for:
 	.end	mystrlen
 	.size	mystrlen,.-mystrlen
 
-esEspacio:	
-	sub t4, a0, 45		# analizo si es el guion medio
-	beq t4, zero, _noEs		
-	sub t4, a0, 95		# analizo si es el guion bajo
-	beq t4, zero, _noEs
-	sub t4, a0, 48		# si es menor que 48 es un espacio
-	bltz t4, _Es
-	sub t4, a0, 122		# si es mayor que 122 es un espacio
-	bgtz t4, _Es
-	sub t4, a0, 57		# si es menor o igual que 57 seguro no es espacio [0,..,9]
-	blez t4, _noEs
-	sub t4, a0, 65		# si es menor a 65 seguro es espacio
-	bltz t4, _Es
-	sub t4, a0, 90		# si es menor o igual a 90 seguro no es espacio [A,...,Z]
-	blez t4, _noEs
-	sub t4, a0, 97		# si es menor que 97 seguro es espacio
-	bltz t4, _Es
-	b _noEs			# esta entre 97 y 122 [a,...,z]
-_noEs:
-	li v0, 0
-	b _analizoEspacio
-_Es:
-	li v0, 1
-	b _analizoEspacio
-	
-
 .data
 
 AUX: .word 0
 FDESCRIPTOR_DE_LECTURA: .word 0
 FDESCRIPTOR_DE_ESCRITURA: .word 0
-TAM_BUFF_IN: .word 0
-TAM_BUFF_OUT: .word 0
+IBYTES: .word 0
+OBYTES: .word 0
+POS_INICIAL_IB: .word 0
 
