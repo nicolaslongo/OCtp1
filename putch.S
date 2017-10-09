@@ -1,5 +1,5 @@
 #include <mips/regdef.h>
-#include <sys/syscalls.h>
+#include <sys/syscall.h>
 .text
 .abicalls
 .globl putch
@@ -26,12 +26,12 @@ putch:
 # compruebo que quede espacio en el buffer de salida
 	subu t0, a0, a1		# le resto la pos_inicial a la pos_actual
 	subu t0, t0, a2		# al resultado le resto el tamaño. Si son iguales, tendré que pasar al syscall
-	bequ t0, zero, _vaciar_buffer 
+	beq t0, zero, _vaciar_buffer 
 
 _escritura:
 	lw a0, 44($fp)			# cargo el char a escribir en a0
 	lw t2, 40($fp)			# cargo en t2 la pos_actual del buffer
-	sw a0, t2				# guardo el char en la pos_actual del buffer
+	sb t2, (a0)				# guardo el char en la pos_actual del buffer
 	li t1, 8
 	add t2, t2, t1
 	sw t2, 40($fp)
@@ -39,7 +39,7 @@ _escritura:
 	b _return
 
 _vaciar_buffer:
-	li v0, sys_write
+	li v0, SYS_write
 	li a0, FDESCRIPTOR_DE_ESCRITURA
 	lw a1, POS_INICIAL_OB		# acá guardo la posición inicial del buffer
 	sw a1, 16($fp)				# me guardo la posición inicial en LTA por si tengo que hacer una reescritura
@@ -53,7 +53,7 @@ _vaciar_buffer:
 
 _comprobacion:
 	bltz a3, _error_en_syscall		# si pasa ésta línea, no hubo error
-	bne v0, TAM_OB					# si pasa ésta línea, entonces a3=0 y v0=obytes
+	bltz v0, TAM_OB					# si pasa ésta línea, entonces a3=0 y v0=obytes
 	lw t0, POS_INICIAL_OB
 	sw t0, 40($fp)					# mi nueva pos_actual es la inicial
 	b _escritura
@@ -81,6 +81,6 @@ _return:		# ya tengo en v0 la pos_actual nueva
 	addu sp, sp, 40
 	jr ra
 
-.end
+.end putch
 
 

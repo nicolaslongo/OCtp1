@@ -1,5 +1,5 @@
 #include <mips/regdef.h>
-#include <sys/syscalls.h>
+#include <sys/syscall.h>
 .text
 .abicalls
 .globl palindrome
@@ -25,10 +25,10 @@ palindrome:
 
 # reservo memoria para el buffer de entrada
 	lw a0, 52($fp)		# preparo a0 para pasarselo a mymalloc
-	mymalloc
+	jal mymalloc
 	sw v0, 16($fp)		# salvo la posicion inicial del buffer en el stack frame	
 	lw a0, 52($fp)		# preparo a0 para pasarselo a mymalloc, utilizamos el mismo tamanio que el buff in
-	mymalloc		# en v0 tengo la posicion de memoria del buffer para palabras
+	jal mymalloc		# en v0 tengo la posicion de memoria del buffer para palabras
 	sw v0, 20($fp)		# lo salvo en el sf
 									##########		
 	lw a0, 16($fp)		# preparo los argumentos para getch, en v0 esta la posicion inicial del buffer
@@ -40,33 +40,32 @@ palindrome:
 	lw t2, 20($fp)		# indica desde que lugar del buffer leer
 
 lecturaArchivo:
-	getch				# empiezo a leer
-	be v0, zero, finDeLectura	# si devuelve 0, es un EOF, sino sigue
+	jal getch				# empiezo a leer
+	beq v0, zero, finDeLectura	# si devuelve 0, es un EOF, sino sigue
 	sw v0, AUX			# me guardo el char en t3
 	lw t3, AUX
 	sw v0, AUX			# preparo a0 para esEspacio
 	lw a0, AUX
-	esEspacio			# me fijo si el caracter es un espacio
+	b esEspacio			# me fijo si el caracter es un espacio
 					# en v0 esta si es un espacio = 1, sino = 0
 _analizoEspacio:
 	bne v0, zero, _analizarPalindromo	
 _sigo:
-	sw t3, t0				# aca hay que meter el caracter leido en el buffer de palabras, creo que asi
+	move t0, t3				# aca hay que meter el caracter leido en el buffer de palabras, creo que asi
 	addu t0, t0, 8				# me muevo al proximo byte
 	b lecturaArchivo			# sigo leyendo
 	
 _analizarPalindromo:
-	li t1, 0		# pongo un 0 para que strlen detecte que ahi termina la palabra (creo que funciona asi)
-	sw t1, t0
-	lw a0, t2		# pongo en a0 desde donde tengo que leer
-	mystrlen
+	move a0, t2		# pongo en a0 desde donde tengo que leer
+	jal mystrlen
 	sw v0, AUX		# en a0 tengo la posicion de comienzo del string
-	subu AUX, AUX, 1	# guardo en a1 el len de la palabra -1 para palindromeString
+	subu a1, v0, 1	# guardo en a1 el len de la palabra -1 para palindromeString
 	lw a1, AUX
-	palindromeString
+	jal palindromeString
 	sw t0, AUX
-	lw t2, 8(AUX)		# actualizo t2
-	jal _sigo
+	lw t2, AUX		# actualizo t2
+	addu t2, t2, 8
+	b _sigo
 	
 
 finDeLectura:
@@ -75,6 +74,11 @@ finDeLectura:
 	lw gp, 36(sp)
 	addu sp, sp, 48
 	jr	ra
+
+.end palindrome
+
+.globl mystrlen
+.ent mystrlen
 
 mystrlen:
 	.frame	$fp, 16, ra
@@ -117,11 +121,11 @@ _end_for:
 	.end	mystrlen
 	.size	mystrlen,.-mystrlen
 
-esEspacio:
+esEspacio:	
 	sub t4, a0, 45		# analizo si es el guion medio
-	be t4, _noEs		
+	beq t4, zero, _noEs		
 	sub t4, a0, 95		# analizo si es el guion bajo
-	be t4, _noEs
+	beq t4, zero, _noEs
 	sub t4, a0, 48		# si es menor que 48 es un espacio
 	bltz t4, _Es
 	sub t4, a0, 122		# si es mayor que 122 es un espacio
@@ -137,17 +141,17 @@ esEspacio:
 	b _noEs			# esta entre 97 y 122 [a,...,z]
 _noEs:
 	li v0, 0
-	jal _analizoEspacio
+	b _analizoEspacio
 _Es:
 	li v0, 1
-	jal _analizoEspacio
+	b _analizoEspacio
 	
 
 .data
 
 AUX: .word 0
-FDESCRIPTOR_DE_LECTURA: .word
-FDESCRIPTOR_DE_ESCRITURA: .word
-TAM_BUFF_IN: .word
-TAM_BUFF_OUT: .word
+FDESCRIPTOR_DE_LECTURA: .word 0
+FDESCRIPTOR_DE_ESCRITURA: .word 0
+TAM_BUFF_IN: .word 0
+TAM_BUFF_OUT: .word 0
 

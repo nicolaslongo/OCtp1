@@ -37,14 +37,16 @@ int aperturaDeArchivos(char* inName, FILE* input_file, char* outName, FILE* outp
 
 char* seIngresoParametro_io(char* par, int len, char** argv){
 	if (strcmp(par, "-i") == 0){
-		for (int i = 1; i < len; i++){
+		int i;
+		for (i = 1; i < len; i++){
 			if (strcmp(argv[i], "-i") == 0){
 				return argv[i+1];
 			}
 		}
 	}
 	else{
-		for (int j = 1; j < len; j++){
+		int j;
+		for (j = 1; j < len; j++){
 			if (strcmp(argv[j], "-o") == 0){
 				return argv[j+1];
 			}
@@ -56,14 +58,16 @@ char* seIngresoParametro_io(char* par, int len, char** argv){
 size_t seIngresoParametro_buf(char* par, int len, char** argv){
 	char* ptr;
 	if (strcmp(par, "-I") == 0){
-		for (int i = 1; i < len; i++){
+		int i;
+		for (i = 1; i < len; i++){
 			if (strcmp(argv[i], "-I") == 0){
 				return (size_t) strtol(argv[i+1], &ptr, 10);
 			}
 		}
 	}
 	else{
-		for (int j = 1; j < len; j++){
+		int j;
+		for (j = 1; j < len; j++){
 			if (strcmp(argv[j], "-O") == 0){
 				return (size_t) strtol(argv[j+1], &ptr, 10);
 			}
@@ -74,7 +78,8 @@ size_t seIngresoParametro_buf(char* par, int len, char** argv){
 
 int verificarParametrosInvalidos(int len, char** argv){
 	char* ptr;
-	for (int i = 1; i < len; i+=2){ //SALTO DE PARAMETRO EN PARAMETRO, PREVIAMENTE EN EL MAIN VERIFIQUE
+	int i;
+	for (i = 1; i < len; i+=2){ //SALTO DE PARAMETRO EN PARAMETRO, PREVIAMENTE EN EL MAIN VERIFIQUE
 					//EL PODER REALIZAR ESTOS SALTOS.
 		if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "-o") == 0 ||
 		    strcmp(argv[i], "-I") == 0 || strcmp(argv[i], "-O") == 0){

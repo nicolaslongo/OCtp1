@@ -1,5 +1,5 @@
 #include <mips/regdef.h>
-#include <sys/syscalls.h>
+#include <sys/syscall.h>
 .text
 .abicalls
 .globl getch
@@ -27,8 +27,10 @@ _if:
 	beq t0, a1, _lectura_inicial
 
 #compruebo que quedan caracteres por leer
-	subu t0, a0, POS_INICIAL_IB		# le resto la pos_inicial a la pos_actual
-	subu t0, t0, TAM_IB		# al resultado, le resto el tamaño. Si son iguales, tendré que pasar al syscall
+	lw t1, POS_INICIAL_IB
+	subu t0, a0, t1		# le resto la pos_inicial a la pos_actual
+	lw t1, TAM_IB
+	subu t0, t0, t1		# al resultado, le resto el tamaño. Si son iguales, tendré que pasar al syscall
 	beq t0, zero, _rellenar_buffer
 
 _lectura:
@@ -38,7 +40,7 @@ _lectura:
 	b _return
 
 _rellenar_buffer:
-	li vo, sys_read
+	li v0, SYS_read
 	li a0, FDESCRIPTOR_DE_LECTURA
 	lw a1, POS_INICIAL_IB		# esto es más bien innecesario pero me aseguro que esté acá. acá está la pos_inicial del buffarini
 	sw a1, 16($fp)		# me guardo la posición inicial en LTA por si tengo que hacer una relectura
@@ -52,8 +54,9 @@ _rellenar_buffer:
 #	4. El syscall devuelve 0 y 0 ----> eof
 _comprobacion:	
 	bltz a3, _error_en_syscall		
-	beqz v0, _eof					
-	subu t0, v0, IBYTES
+	beqz v0, _eof
+	lw t1, IBYTES					
+	subu t0, v0, t1
 	bgtz t0, _relectura				# si pasa ésta línea, entonces a3=0 y v0=ibytes
 
 	lw t0, POS_INICIAL_IB
@@ -92,4 +95,4 @@ _return:	# ya tengo en v0 la posición en memoria del char (leído) y en v1 mi n
 	addu sp, sp, 40
 	jr	ra
 
-.end
+.end getch
