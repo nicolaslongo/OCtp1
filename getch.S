@@ -2,6 +2,9 @@
 #include <sys/syscall.h>
 .text
 .abicalls
+.globl POS_INICIAL_IB
+.globl FDESCRIPTOR_DE_LECTURA
+.globl IBYTES
 .globl getch
 .ent getch
 
@@ -19,7 +22,7 @@ getch:
 	
 # me guardo los parámetros que no guardo la caller (por convención de ABI)
 	sw a0, 40($fp)		# salvo posicion actual del buffer
-	sw a1, 44($fp)		# salvo condición de lectura inicial (ex-pos inicial)
+	sw a1, 44($fp)		# salvo condición de lectura inicial
 #	sw a2, 48($fp)		# salvo tamaño del buffer
 
 _if:
@@ -30,12 +33,12 @@ _if:
 	la t2, POS_INICIAL_IB
 	lw t1, 0(t2)
 	subu t0, a0, t1		# le resto la pos_inicial a la pos_actual
-	lw t1, TAM_IB
+	lw t1, IBYTES
 	subu t0, t0, t1		# al resultado, le resto el tamaño. Si son iguales, tendré que pasar al syscall
 	beq t0, zero, _rellenar_buffer
 
 _lectura:
-	lw v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
+	lb v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
 	li t1, 8
 	add v1, v0, t1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char) 
 	b _return
