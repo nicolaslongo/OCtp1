@@ -61,10 +61,6 @@ _noEsPalabra:
 	b lecturaArchivo						# sigo leyendo
 
 _definirLargoDePalabra:
-	lw t0, 20($fp)							# cargo la pos_actual de buffwords
-	sb t3, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
-	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
-	sw t0, 20($fp)							# guardo dicha pos_actual
 	li t7, 1								# inicializo t7 en 0 porque ya detecté el primer caracter
 
 _loopEsPalabra:
@@ -76,22 +72,17 @@ _loopEsPalabra:
 	move t3, v0								# me guardo el char en t3
 	move a0, v0								# preparo a0 para esEspacio
 	jal esEspacio							# me fijo si el caracter es un espacio
-	bne v0, 0, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
-	lw t0, 20($fp)							# cargo la pos_actual de buffwords
-	sb t3, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
+	beq v0, 1, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada	
 	addu t7, t7, 1							# escribí caracter más
-	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
-	sw t0, 20($fp)							# guardo dicha pos_actual
-	beq v0, 0, _loopEsPalabra				# casi seguro de que éste podría ser un branch always
+	b _loopEsPalabra				# casi seguro de que éste podría ser un branch always
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
-	lw a0, POS_INICIAL_BUFF_PAL
-	subu a1, t7, 1
+	lw a0, POS_INICIAL_IB
+	move a1, t7
 	jal palindromeString
-	lw t1, POS_INICIAL_BUFF_PAL
-	move t7, t0								# pongo en cero mi registro t7 de nuevo
-	sw t1, 20($fp)
+	lw t1, POS_INICIAL_IB
+	li t7, 0								# pongo en cero mi registro t7 de nuevo	
 
 	lw a0, 16($fp)							# me preparo para seguir leyendo
 	li a1, 0
@@ -99,11 +90,9 @@ _analizarPalindromo:
 	
 _analizarPalindromoFinal:
 	beqz t7, finDeLectura					# ésta línea casi seguro es inútil
-	lw a0, POS_INICIAL_BUFF_PAL
-	subu a1, t7, 1
+	lw a0, POS_INICIAL_IB
+	move a1, t7
 	jal palindromeString
-	lw t1, POS_INICIAL_BUFF_PAL
-	sw t1, 20($fp)
 
 finDeLectura:
 	lw ra, 40(sp)
