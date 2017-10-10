@@ -34,21 +34,14 @@ palindrome:
 	jal mymalloc
 	sw v0, 16($fp)					# salvo la posicion inicial del buffer en el stack frame
 	sw v0, POS_INICIAL_IB 			# lo guardo como variable global	
-	lw a0, IBYTES					# utilizamos el mismo tamanio que el buff in?
+	lw a0, OBYTES					# utilizamos tamanio que el buff out
 	jal mymalloc					# en v0 tengo la posicion de memoria del buffer para palabras
 	sw v0, 20($fp)					# pos_actual del buffwords
 	sw v0, POS_INICIAL_BUFF_PAL
-	li t4, 0						# strlen
 
-										
+	li t4, 0						# strlen										
 	lw a0, POS_INICIAL_IB			# preparo los argumentos para getch, paso la posicion actual del buffin (que resulta ser la inicial)
 	li a1, 1						# tiene que llenar el buffer
-
-#	li v0, SYS_write						##### write de prueba
-#	li t4, 1 								#salida
-#	syscall
-
-
 lecturaArchivo:
 	jal getch						# empiezo a leer
 	sw v1, 16($fp)					# actualizo pos_actual del buffin
@@ -64,8 +57,8 @@ lecturaArchivo:
 # si en definitiva no los queremos imprimir
 
 _noEsPalabra:
-	lw v0, 16($fp)
-	li v1, 0
+	lw a0, 16($fp)
+	li a1, 0
 	b lecturaArchivo						# sigo leyendo
 
 _analizarPalabra:
@@ -84,13 +77,10 @@ _loopEsPalabra:
 	move t3, v0								# me guardo el char en t3
 	move a0, v0								# preparo a0 para esEspacio
 	jal esEspacio							# me fijo si el caracter es un espacio
-	beq v0, 0, _loopEsPalabra
+	bne v0, 0, _loopEsPalabra
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
-#	li v0, SYS_write						##### write de prueba
-#	li t4, 1 								#salida
-#	syscall
 	lw a0, POS_INICIAL_BUFF_PAL
 	subu a1, t7, 1
 	jal palindromeString
@@ -159,7 +149,7 @@ _lectura:
 
 	lb v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
 	li t1, 1
-	add v1, v0, t1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char) 
+	add v1, a0, t1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char) 
 	b _return
 
 _rellenar_buffer:
