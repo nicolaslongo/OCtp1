@@ -53,21 +53,28 @@ lecturaArchivo:
 	move a0, v0			# preparo a0 para esEspacio
 	jal esEspacio			# me fijo si el caracter es un espacio
 					# en v0 esta si es un espacio = 1, sino = 0
-	bne v0, zero, _analizarPalindromo	
+	beq v0, 0, _analizarPalindromo	
 _sigo:
 	move t0, t3			# aca hay que meter el caracter leido en el buffer de palabras, creo que asi
-	addu t0, t0, 8			# me muevo al proximo byte
+	addu t0, t0, 1			# me muevo al proximo byte
 	move a0, v1			# preparo los argumentos para getch, paso la posicion actual del buffer
 	li a1, 0			# hay que leer ahora
 	b lecturaArchivo			# sigo leyendo
 	
 _analizarPalindromo:
-	move a0, t2		# pongo en a0 desde donde tengo que leer, comienzo de la palabra
+	lw a0, 20($fp)	# pongo en a0 desde donde tengo que leer, comienzo de la palabra
 	jal mystrlen
-	subu a1, v0, 1		# guardo en a1 el len de la palabra -1 para palindromeString
+	subu a1, v0, 1		# guardo en a0 el len de la palabra -1 para palindromeString
+
+	## write de prueba
+	li v0, SYS_write
+	li a0, 1 #salida
+	syscall
+
+	lw a0, 20($fp)
 	jal palindromeString
 	move t2, t0		# actualizo t2
-	addu t2, t2, 8
+	addu t2, t2, 1
 	b _sigo
 	
 
@@ -103,15 +110,15 @@ mystrlen:
 	sw	t0, 0($fp)	# i: t0
 _for_loop:
 	# condicion de corte: s[i] != 0
-	lw	a0, 16($fp)			## redundante
-	lw	t0, 0($fp)			## redundante
-	addu	t1, a0, t0	# s[i]: t1
-	lb	t1, 0(t1)			## lb, NO lw!
-	beq	t1, zero, _end_for
-	
-	lw	t0, 0($fp)	# i++		## redundante
-	addu	t0, t0, 1
-	sw	t0, 0($fp)			## redundante
+ 	lw	a0, 16($fp)			## redundante
+ 	lw	t0, 0($fp)			## redundante
+ 	addu	t1, a0, t0	# s[i]: t1
+ 	lb	t1, 0(t1)			## lb, NO lw!
+ 	beq	t1, zero, _end_for
+ 	
+ 	lw	t0, 0($fp)	# i++		## redundante
+ 	addu	t0, t0, 1
+ 	sw	t0, 0($fp)			## redundante
 	j	_for_loop
 
 _end_for:
@@ -121,8 +128,8 @@ _end_for:
 	addu	sp, sp, 16
 	jr	ra
 
-	.end	mystrlen
-	.size	mystrlen,.-mystrlen
+.end	mystrlen
+.size	mystrlen,.-mystrlen
 
 .globl getch
 .ent getch
@@ -157,8 +164,14 @@ _if:
 	beq t0, zero, _rellenar_buffer
 
 _lectura:
+	#print de prueba
+	#li v0, SYS_write
+	#li a0, 1 #salida
+	#lw a1, 40($fp) # guardo string
+	#syscall
+
 	lb v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
-	li t1, 8
+	li t1, 1
 	add v1, v0, t1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char) 
 	b _return
 
@@ -170,7 +183,7 @@ _rellenar_buffer:
 	lw a1, 0(t0)			
 	sw a1, 16($fp)		# me guardo la posición inicial en LTA por si tengo que hacer una relectura
 	lw a2, IBYTES		# y acá está el tamaño. lo mismo que arriba
-	syscall
+	syscall	
 
 # Casos posibles:
 #	1. El syscall puede leer todo, devuelve 0 y ibytes
@@ -178,8 +191,9 @@ _rellenar_buffer:
 #	3. El syscall devuelve un número negativo (hubo error). Hay código de error y está en v0
 #	4. El syscall devuelve 0 y 0 ----> eof
 _comprobacion:	
-	bltz a3, _error_en_syscall		
-	beqz v0, _eof
+	bltz a3, _error_en_syscall
+	addu t5, v0, a3		
+	beqz t5, _eof
 	la t2, IBYTES
 	lw t1, 0(t2)					
 	subu t0, v0, t1
