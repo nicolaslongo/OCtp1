@@ -31,50 +31,50 @@ palindrome:
 
 
 # reservo memoria para el buffer de entrada
-	lw a0, 52($fp)		# preparo a0 para pasarselo a mymalloc
+	lw a0, IBYTES					# preparo a0 para pasarselo a mymalloc
 	jal mymalloc
-	sw v0, 16($fp)		# salvo la posicion inicial del buffer en el stack frame
-	sw v0, POS_INICIAL_IB 	# lo guardo como variable global	
-	lw a0, 52($fp)		# preparo a0 para pasarselo a mymalloc, utilizamos el mismo tamanio que el buff in
-	jal mymalloc		# en v0 tengo la posicion de memoria del buffer para palabras
-	sw v0, 20($fp)		# lo salvo en el sf
+	sw v0, POS_INICIAL_IB 			# obtengo la posicion de inicio del buffer de entrada, lo guardo como variable global	
+	lw a0, IBYTES					# preparo a0 para pasarselo a mymalloc, utilizamos el mismo tamanio que el buff in
+	jal mymalloc					# en v0 tengo la posicion de memoria del buffer para palabras
+	sw v0, POS_INICIAL_BUFF_PAL		# lo guardo como variable global
 
 										
-	lw a0, 16($fp)		# preparo los argumentos para getch, paso la posicion inicial del buffer, ahi arranca
-	li a1, 1		# tiene que llenar el buffer
-	lw t0, 20($fp)		# inicializo un contador para moverme por el buffer de palabras
-				# habria que ir de 8 en 8 porque cada char ocupa un byte
-	lw t2, 20($fp)		# indica desde que lugar del buffer leer
+	lw a0, POS_INICIAL_IB			# preparo los argumentos para getch, paso la posicion inicial del buffer, ahi arranca
+	li a1, 1						# tiene que llenar el buffer
+	lw t0, POS_INICIAL_BUFF_PAL		# inicializo un contador para moverme por el buffer de palabras
+									# habria que ir de 8 en 8 porque cada char ocupa un byte
+	lw t2, POS_INICIAL_BUFF_PAL		# indica desde que lugar del buffer leer
+	li t4, 0						# strlen
 
 lecturaArchivo:
-	jal getch			# empiezo a leer
-	beq v0, zero, finDeLectura	# si devuelve 0, es un EOF, sino sigue
-	move t3, v0			# me guardo el char en t3
-	move a0, v0			# preparo a0 para esEspacio
-	jal esEspacio			# me fijo si el caracter es un espacio
-					# en v0 esta si es un espacio = 1, sino = 0
-	beq v0, 0, _analizarPalindromo	
+	jal getch						# empiezo a leer
+	beq v0, zero, finDeLectura		# si devuelve 0, es un EOF, sino sigue
+	move t3, v0						# me guardo el char en t3
+	move a0, v0						# preparo a0 para esEspacio
+	jal esEspacio					# me fijo si el caracter es un espacio
+									# en v0 esta si es un espacio = 1, sino = 0
+	bne v0, 0, _analizarPalindromo	# si son iguales, no es un espacio, sino es un espacio y salto
 _sigo:
-	move t0, t3			# aca hay que meter el caracter leido en el buffer de palabras, creo que asi
-	addu t0, t0, 1			# me muevo al proximo byte
-	move a0, v1			# preparo los argumentos para getch, paso la posicion actual del buffer
-	li a1, 0			# hay que leer ahora
-	b lecturaArchivo			# sigo leyendo
+	addu t4, t4, 1					# aumento el strlen
+	move t0, t3						# aca hay que meter el caracter leido en el buffer de palabras, creo que asi
+	addu t0, t0, 1					# me muevo al proximo byte
+	move a0, v1						# preparo los argumentos para getch, paso la posicion actual del buffer
+	li a1, 0						# hay que leer ahora
+	b lecturaArchivo				# sigo leyendo
 	
 _analizarPalindromo:
-	lw a0, 20($fp)	# pongo en a0 desde donde tengo que leer, comienzo de la palabra
-	jal mystrlen
-	subu a1, v0, 1		# guardo en a0 el len de la palabra -1 para palindromeString
 
 	## write de prueba
 	li v0, SYS_write
-	li a0, 1 #salida
+	li t4, 1 #salida
 	syscall
 
 	lw a0, 20($fp)
+	subu a1, t4, 1	# el len menos 1 para palindromeString
 	jal palindromeString
 	move t2, t0		# actualizo t2
 	addu t2, t2, 1
+	li t4, 0		# reseteo strlen
 	b _sigo
 	
 
@@ -87,49 +87,6 @@ finDeLectura:
 
 .end palindrome
 
-.globl mystrlen
-.ent mystrlen
-
-mystrlen:
-	.frame	$fp, 16, ra
-	.set	noreorder
-	.cpload t9
-	.set	reorder
-
-	# creo stack frame
-	subu	sp, sp, 16	# 2 (SRA) + 2 (LTA)
-	.cprestore 8		# sw gp, 8(sp)
-	sw	$fp, 12(sp)
-	move	$fp, sp
-
-	# salvo 1er arg (siempre)
-	sw	a0, 16($fp)			## redundante
-
-	# for (i=0; s[i] != 0; i++)
-	move	t0, zero	# i=0: t0, fp+0
-	sw	t0, 0($fp)	# i: t0
-_for_loop:
-	# condicion de corte: s[i] != 0
- 	lw	a0, 16($fp)			## redundante
- 	lw	t0, 0($fp)			## redundante
- 	addu	t1, a0, t0	# s[i]: t1
- 	lb	t1, 0(t1)			## lb, NO lw!
- 	beq	t1, zero, _end_for
- 	
- 	lw	t0, 0($fp)	# i++		## redundante
- 	addu	t0, t0, 1
- 	sw	t0, 0($fp)			## redundante
-	j	_for_loop
-
-_end_for:
-	lw	v0, 0($fp)			## podria ser un move v0, t0
-	lw	gp, 8(sp)
-	lw	$fp, 12(sp)
-	addu	sp, sp, 16
-	jr	ra
-
-.end	mystrlen
-.size	mystrlen,.-mystrlen
 
 .globl getch
 .ent getch
@@ -247,4 +204,5 @@ FDESCRIPTOR_DE_ESCRITURA: .word 0
 IBYTES: .word 0
 OBYTES: .word 0
 POS_INICIAL_IB: .word 0
+POS_INICIAL_BUFF_PAL: .word 0
 
