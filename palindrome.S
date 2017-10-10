@@ -50,7 +50,7 @@ lecturaArchivo:
 	move a0, v0						# preparo a0 para esEspacio
 	jal esEspacio					# me fijo si el caracter es un espacio
 									# en v0 esta si es un espacio = 1, sino = 0
-	beq v0, 0, _analizarPalabra	
+	beq v0, 0, _definirPalabra	
 
 # si llegué acá es un espacio. ¿Para qué meteríamos el caracter en el buffer de palabras?
 # sólo hay que aumentar el puntero a pos_in del buffin y perder en el camino esos caracteres
@@ -61,15 +61,14 @@ _noEsPalabra:
 	li a1, 0
 	b lecturaArchivo						# sigo leyendo
 
-_analizarPalabra:
-	lw t0, 20($fp)							# me guardo la pos_actual de buffwords
+_definirPalabra:
+	lw t0, 20($fp)							# cargo la pos_actual de buffwords
 	sb t3, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
-	addu t0, t0, 1							# avanzo (8 bits?) la pos_actual del buffwords
+	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
 	sw t0, 20($fp)							# guardo dicha pos_actual
-	li t7, 0								# inicializo t7 en 0 porque ya detecté el primer caracter
+	li t7, 1								# inicializo t7 en 0 porque ya detecté el primer caracter
 
 _loopEsPalabra:
-	addu t7, t7, 1							# por cada vez que entro al loop tengo un caracter más
 	move a0, v1								# preparo los argumentos para getch, paso la posicion actual del buffin (que se supone está en v1). Para mí, hay que guardarla en el stack
 	li a1, 0								# no es la primera lectura
 	jal getch								# guardarse v1 en el stack
@@ -77,7 +76,13 @@ _loopEsPalabra:
 	move t3, v0								# me guardo el char en t3
 	move a0, v0								# preparo a0 para esEspacio
 	jal esEspacio							# me fijo si el caracter es un espacio
-	bne v0, 0, _loopEsPalabra
+	bne v0, 0, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
+	lw t0, 20($fp)							# cargo la pos_actual de buffwords
+	sb t3, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
+	addu t7, t7, 1							# escribí caracter más
+	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
+	sw t0, 20($fp)							# guardo dicha pos_actual
+	beq v0, 0, _loopEsPalabra				# casi seguro de que éste podría ser un branch always
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
