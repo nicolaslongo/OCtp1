@@ -39,7 +39,6 @@ palindrome:
 	sw v0, 20($fp)					# pos_actual del buffwords
 	sw v0, POS_INICIAL_BUFF_PAL
 
-	li t4, 0						# strlen										
 	lw a0, POS_INICIAL_IB			# preparo los argumentos para getch, paso la posicion actual del buffin (que resulta ser la inicial)
 	li a1, 1						# tiene que llenar el buffer
 lecturaArchivo:
@@ -50,7 +49,7 @@ lecturaArchivo:
 	move a0, v0						# preparo a0 para esEspacio
 	jal esEspacio					# me fijo si el caracter es un espacio
 									# en v0 esta si es un espacio = 1, sino = 0
-	beq v0, 0, _definirPalabra	
+	beq v0, 0, _definirLargoDePalabra	
 
 # si llegué acá es un espacio. ¿Para qué meteríamos el caracter en el buffer de palabras?
 # sólo hay que aumentar el puntero a pos_in del buffin y perder en el camino esos caracteres
@@ -61,7 +60,7 @@ _noEsPalabra:
 	li a1, 0
 	b lecturaArchivo						# sigo leyendo
 
-_definirPalabra:
+_definirLargoDePalabra:
 	lw t0, 20($fp)							# cargo la pos_actual de buffwords
 	sb t3, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
 	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
@@ -69,9 +68,10 @@ _definirPalabra:
 	li t7, 1								# inicializo t7 en 0 porque ya detecté el primer caracter
 
 _loopEsPalabra:
-	move a0, v1								# preparo los argumentos para getch, paso la posicion actual del buffin (que se supone está en v1). Para mí, hay que guardarla en el stack
+	lw a0, 16($fp)							# preparo los argumentos para getch, paso la posicion actual del buffin (que se supone está en v1). Para mí, hay que guardarla en el stack
 	li a1, 0								# no es la primera lectura
 	jal getch								# guardarse v1 en el stack
+	sw v1, 16($fp)							# actualizo pos_actual del buffin
 	beq v0, zero, _analizarPalindromoFinal
 	move t3, v0								# me guardo el char en t3
 	move a0, v0								# preparo a0 para esEspacio
