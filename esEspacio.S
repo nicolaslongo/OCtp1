@@ -39,9 +39,24 @@ esEspacio:
 	bltz t4, _Es
 	b _noEs			# esta entre 97 y 122 [a,...,z]
 _noEs:
+	#PRINTS DE PRUEBA
+	li v0, SYS_write
+	li a0, 1 #salida
+	la a1, NOES # guardo string
+	li a2, 10
+	syscall
+
 	li v0, 0
 	b _return
 _Es:
+	#PRINTS DE PRUEBA
+	li v0, SYS_write
+	li a0, 1 #salida
+	la a1, ES # guardo string
+	li a2, 7
+	syscall
+
+
 	li v0, 1
 	b _return
 
@@ -53,3 +68,8 @@ _return:
 	jr	ra
 
 .end esEspacio
+
+.rdata
+
+NOES: .asciiz "NO ES ESP\n"
+ES: .asciiz "ES ESP\n"
