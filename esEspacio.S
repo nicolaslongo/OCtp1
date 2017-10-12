@@ -20,6 +20,14 @@ esEspacio:
 # me guardo los parámetros (por convención de ABI)
 	sw a0, 40($fp)		# salvo el caracter
 
+	#PRINT DEL CHAR recibido. Este funciona
+	move a1, a0
+	li v0, SYS_write
+	li a0, 1 #salida
+	li a2, 1
+	syscall
+	lw a0, 40($fp)
+
 # inicia el programa
 	sub t4, a0, 45		# analizo si es el guion medio
 	beq t4, zero, _noEs		
@@ -55,7 +63,6 @@ _Es:
 	la a1, ES # guardo string
 	li a2, 7
 	syscall
-
 
 	li v0, 1
 	b _return

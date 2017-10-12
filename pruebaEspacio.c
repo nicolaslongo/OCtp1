@@ -9,14 +9,21 @@ int esEspacio(char c);
 
 int main(int argc, char** argv)
 {
-	char* v = "a'-_9/@K.<";
+	char* v = "aaab'-_9/@K.<";
 	int i;
-	for(i = 0; i< 10; i++){
-		if (esEspacio(v[i])){
+	int cond;
+	for(i = 0; i< 13; i++){
+		cond = esEspacio(v[i]);
+		if (cond == 1){
 			printf("%c es espacio\n", v[i]);
 		}
-		else{
+		else { 
+			if(cond == 0) {
 			printf("%c es caracter\n", v[i]);
+			}
+			else{
+			printf("Con %c se fue todo a la puta\n", v[i]);
+			}
 		}
 	}	
 	return 0;

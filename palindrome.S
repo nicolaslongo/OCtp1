@@ -58,10 +58,32 @@ palindrome:
 	li a1, 1						# tiene que llenar el buffer
 lecturaArchivo:
 	jal getch						# empiezo a leer
+	#print de prueba. Este funciona
+#	sw v0, 24($fp)
+#	sw v1, 16($fp)
+#	move a1, v0				# guardo el char
+#	li v0, SYS_write
+#	li a0, 1 				# salida
+#	li a2, 1
+#	syscall
+#	lw v0, 24($fp)
+
 	sw v1, 16($fp)					# actualizo pos_actual del buffin
 	beq v0, zero, finDeLectura		# si devuelve 0, es un EOF, sino sigue
-	move t3, v0						# me guardo el char en t3
-	move a0, t3						# preparo a0 para esEspacio
+	sw v0, 24($fp)					# guardo el último char leído
+#	move t3, v0						# me guardo el char en t3 ESTA LINEA PUEDE VOLAR Y NOS MANEJAMOS CON
+									# EL CHAR DESDE EL STACK
+	move a0, v0						# preparo a0 para esEspacio
+
+	#print de prueba. Este funciona
+#	sw v0, 24($fp)
+#	move a1, v0				# guardo el char
+#	li v0, SYS_write
+#	li a0, 1 				# salida
+#	li a2, 1
+#	syscall
+#	lw a0, 24($fp)
+
 	jal esEspacio					# me fijo si el caracter es un espacio
 									# en v0 esta si es un espacio = 1, sino = 0
 	beq v0, 0, _definirLargoDePalabra	
@@ -177,10 +199,20 @@ _lectura:
 #	li a2, 1
 #	syscall
 
-	lb v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
+	lw v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
 	li t1, 1
 	lw a0, 40($fp)
-	add v1, a0, t1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char) 
+	add v1, a0, t1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char)
+
+	#print de prueba. Este funciona
+#	move a1, v0
+#	li v0, SYS_write
+#	li a0, 1 				# salida
+#	li a2, 1
+#	syscall
+#	lw v0, 40($fp)
+#	lw a0, 40($fp)
+#	addu a0, a0, 1
 	b _return
 
 _rellenar_buffer:
@@ -239,6 +271,17 @@ _lectura_inicial:
 	b _rellenar_buffer
 
 _return:	# ya tengo en v0 la el char (leído) y en v1 mi nueva posición actual
+	#print de prueba. Este funciona
+#	sw v0, 16($fp)
+#	sw v1, 20($fp)
+#	move a1, v0				# guardo el char
+#	li v0, SYS_write
+#	li a0, 1 				# salida
+#	li a2, 1
+#	syscall
+#	lw v0, 16($fp)
+#	lw v1, 20($fp)
+
 	lw ra, 32(sp)
 	lw $fp, 24(sp)
 	lw gp, 28(sp)
