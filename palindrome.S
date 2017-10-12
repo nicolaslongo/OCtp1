@@ -170,6 +170,12 @@ _if:
 	beq t0, zero, _rellenar_buffer
 
 _lectura:
+	#print de prueba. Este funciona
+#	li v0, SYS_write
+#	li a0, 1 				# salida
+#	lw a1, 40($fp) 			# guardo string
+#	li a2, 1
+#	syscall
 
 	lb v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
 	li t1, 1
@@ -183,8 +189,8 @@ _rellenar_buffer:
 	lw a0, 0(t0)
 	la t0, POS_INICIAL_IB
 	lw a1, 0(t0)			
-	sw a1, 16($fp)		# me guardo la posición inicial en LTA por si tengo que hacer una relectura
-	lw a2, IBYTES		# y acá está el tamaño. lo mismo que arriba
+	sw a1, 16($fp)			# me guardo la posición inicial en LTA por si tengo que hacer una relectura
+	lw a2, IBYTES			# y acá está el tamaño. lo mismo que arriba
 	syscall	
 
 # Casos posibles:
@@ -196,7 +202,7 @@ _comprobacion:
 	bltz a3, _error_en_syscall
 	addu t5, v0, a3		
 	beqz t5, _eof
-	lw t2, IBYTES
+	la t2, IBYTES
 	lw t1, 0(t2)					
 	subu t0, v0, t1
 	bgtz t0, _relectura				# si pasa ésta línea, entonces a3=0 y v0=ibytes
@@ -224,7 +230,7 @@ _relectura:
 	la t3, FDESCRIPTOR_DE_LECTURA
 	lw a0, 0(t3)
 	lw t1, 48($fp)
-	subu t0, t1, v0		# mi nuevo tamaño será el tamaño anterior - los caracteres leídos
+	subu t0, t1, v0					# mi nuevo tamaño será el tamaño anterior - los caracteres leídos
 	move a2, t0
 	syscall
 	b _comprobacion
