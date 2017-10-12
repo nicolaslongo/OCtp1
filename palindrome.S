@@ -33,11 +33,26 @@ palindrome:
 	lw a0, IBYTES					# preparo a0 para pasarselo a mymalloc
 	jal mymalloc
 	sw v0, 16($fp)					# salvo la posicion inicial del buffer en el stack frame
-	sw v0, POS_INICIAL_IB 			# lo guardo como variable global	
+	sw v0, POS_INICIAL_IB 			# lo guardo como variable global
+
+	#PRINTS DE PRUEBA PARA VER SI PASO EL PRIMER MYMALLOC
+	li v0, SYS_write
+	li a0, 1 #salida
+	la a1, PASO_1 # guardo string
+	li a2, 16
+	syscall
+
 	lw a0, OBYTES					# utilizamos tamanio que el buff out
 	jal mymalloc					# en v0 tengo la posicion de memoria del buffer para palabras
 	sw v0, 20($fp)					# pos_actual del buffwords
 	sw v0, POS_INICIAL_BUFF_PAL
+
+	#PRINTS DE PRUEBA PARA VER SI PASO EL SEGUNDO MYMALLOC
+	li v0, SYS_write
+	li a0, 1 #salida
+	la a1, PASO_2 # guardo string
+	li a2, 16
+	syscall
 
 	lw a0, POS_INICIAL_IB			# preparo los argumentos para getch, paso la posicion actual del buffin (que resulta ser la inicial)
 	li a1, 1						# tiene que llenar el buffer
@@ -46,7 +61,7 @@ lecturaArchivo:
 	sw v1, 16($fp)					# actualizo pos_actual del buffin
 	beq v0, zero, finDeLectura		# si devuelve 0, es un EOF, sino sigue
 	move t3, v0						# me guardo el char en t3
-	move a0, v0						# preparo a0 para esEspacio
+	move a0, t3						# preparo a0 para esEspacio
 	jal esEspacio					# me fijo si el caracter es un espacio
 									# en v0 esta si es un espacio = 1, sino = 0
 	beq v0, 0, _definirLargoDePalabra	
@@ -61,9 +76,22 @@ _noEsPalabra:
 	b lecturaArchivo						# sigo leyendo
 
 _definirLargoDePalabra:
+	lw t0, POS_INICIAL_BUFF_PAL				# cargo la pos_actual de buffwords
+	sb t3, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
+	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
+	sw t0, 20($fp)							# guardo dicha pos_actual
 	li t7, 1								# inicializo t7 en 0 porque ya detecté el primer caracter
 
 _loopEsPalabra:
+
+	#PRINTS DE PRUEBA PARA VER SI EMPIEZA A LEER
+	li v0, SYS_write
+	li a0, 1 #salida
+	la a1, PASO_3 # guardo string
+	li a2, 22
+	syscall
+
+
 	lw a0, 16($fp)							# preparo los argumentos para getch, paso la posicion actual del buffin (que se supone está en v1). Para mí, hay que guardarla en el stack
 	li a1, 0								# no es la primera lectura
 	jal getch								# guardarse v1 en el stack
@@ -72,17 +100,22 @@ _loopEsPalabra:
 	move t3, v0								# me guardo el char en t3
 	move a0, v0								# preparo a0 para esEspacio
 	jal esEspacio							# me fijo si el caracter es un espacio
-	beq v0, 1, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada	
+	bne v0, 0, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
+	lw t0, 20($fp)							# cargo la pos_actual de buffwords
+	sb t3, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
 	addu t7, t7, 1							# escribí caracter más
-	b _loopEsPalabra				# casi seguro de que éste podría ser un branch always
+	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
+	sw t0, 20($fp)							# guardo dicha pos_actual
+	beq v0, 0, _loopEsPalabra				# casi seguro de que éste podría ser un branch always
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
-	lw a0, POS_INICIAL_IB
-	move a1, t7
+	lw a0, POS_INICIAL_BUFF_PAL
+	subu a1, t7, 1
 	jal palindromeString
-	lw t1, POS_INICIAL_IB
-	li t7, 0								# pongo en cero mi registro t7 de nuevo	
+	lw t1, POS_INICIAL_BUFF_PAL
+	move t7, zero							# pongo en cero mi registro t7 de nuevo
+	sw t1, 20($fp)
 
 	lw a0, 16($fp)							# me preparo para seguir leyendo
 	li a1, 0
@@ -90,9 +123,11 @@ _analizarPalindromo:
 	
 _analizarPalindromoFinal:
 	beqz t7, finDeLectura					# ésta línea casi seguro es inútil
-	lw a0, POS_INICIAL_IB
-	move a1, t7
+	lw a0, POS_INICIAL_BUFF_PAL
+	subu a1, t7, 1
 	jal palindromeString
+	lw t1, POS_INICIAL_BUFF_PAL
+	sw t1, 20($fp)
 
 finDeLectura:
 	lw ra, 40(sp)
@@ -135,14 +170,10 @@ _if:
 	beq t0, zero, _rellenar_buffer
 
 _lectura:
-	#print de prueba
-	#li v0, SYS_write
-	#li a0, 1 #salida
-	#lw a1, 40($fp) # guardo string
-	#syscall
 
 	lb v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
 	li t1, 1
+	lw a0, 40($fp)
 	add v1, a0, t1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char) 
 	b _return
 
@@ -165,7 +196,7 @@ _comprobacion:
 	bltz a3, _error_en_syscall
 	addu t5, v0, a3		
 	beqz t5, _eof
-	la t2, IBYTES
+	lw t2, IBYTES
 	lw t1, 0(t2)					
 	subu t0, v0, t1
 	bgtz t0, _relectura				# si pasa ésta línea, entonces a3=0 y v0=ibytes
@@ -219,3 +250,7 @@ IBYTES: .word 0
 OBYTES: .word 0
 POS_INICIAL_IB: .word 0
 POS_INICIAL_BUFF_PAL: .word 0
+PASO_1: .asciiz "PASE MYMALLOC 1\n"
+PASO_2: .asciiz "PASE MYMALLOC 2\n"
+PASO_3: .asciiz "ENTRO EN LOOP PALABRA\n"
+
