@@ -59,30 +59,32 @@ palindrome:
 lecturaArchivo:
 	jal getch						# empiezo a leer
 	#print de prueba. Este funciona
-#	sw v0, 24($fp)
-#	sw v1, 16($fp)
-#	move a1, v0				# guardo el char
-#	li v0, SYS_write
-#	li a0, 1 				# salida
-#	li a2, 1
-#	syscall
-#	lw v0, 24($fp)
+	sw v0, 24($fp)
+	sw v1, 16($fp)
+	move a1, v0				# guardo el char
+	li v0, SYS_write
+	li a0, 1 				# salida
+	li a2, 1
+	syscall
+	lw v0, 24($fp)
 
 	sw v1, 16($fp)					# actualizo pos_actual del buffin
 	beq v0, zero, finDeLectura		# si devuelve 0, es un EOF, sino sigue
 	sw v0, 24($fp)					# guardo el último char leído
 #	move t3, v0						# me guardo el char en t3 ESTA LINEA PUEDE VOLAR Y NOS MANEJAMOS CON
 									# EL CHAR DESDE EL STACK
-	move a0, v0						# preparo a0 para esEspacio
+#	move a0, v0						# preparo a0 para esEspacio
 
 	#print de prueba. Este funciona
-#	sw v0, 24($fp)
-#	move a1, v0				# guardo el char
-#	li v0, SYS_write
-#	li a0, 1 				# salida
-#	li a2, 1
-#	syscall
-#	lw a0, 24($fp)
+	sw v0, 24($fp)
+	move a1, v0				# guardo el char
+	li v0, SYS_write
+	li a0, 1 				# salida
+	li a2, 1
+	syscall
+	lw a0, 24($fp)
+
+	lb a0, 0(a0)	
 
 	jal esEspacio					# me fijo si el caracter es un espacio
 									# en v0 esta si es un espacio = 1, sino = 0
@@ -198,7 +200,8 @@ _lectura:
 #	lw a1, 40($fp) 			# guardo string
 #	li a2, 1
 #	syscall
-
+		
+	
 	lw v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
 	li t1, 1
 	lw a0, 40($fp)
