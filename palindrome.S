@@ -45,6 +45,8 @@ palindrome:
 lecturaArchivo:
 	jal getch						# empiezo a leer
 	beq v0, zero, finDeLectura		# si devuelve 0, es un EOF, sino sigue
+	sw v1, 16($fp)					# me guardo la posicion actual del buff in
+	sw v0, 24($fp)					# me guardo el puntero al primer caracter
 	
 	move a0, v0						# guardo el último char leído
 	lb a0, 0(a0)
@@ -57,19 +59,20 @@ lecturaArchivo:
 # si en definitiva no los queremos imprimir
 
 _noEsPalabra:
-	lw a0, 16($fp)
-	addu a0, a0, 1
-	sw a0, 16($fp)
+	lw a0, 16($fp)							# si no es palabra, cargo la posicion actual del buff in y vuelvo
 	li a1, 0
 	b lecturaArchivo						# sigo leyendo
 
 _definirLargoDePalabra:
-	lw t0, 16($fp)				# cargo la pos_actual de buffwords
-	lw t1, POS_INICIAL_BUFF_PAL
-	sb t1, 0(t0) 							# guardo el char leído en la pos_actual del buffwords
-	addu t0, t0, 1							# avanzo 8 bits la pos_actual del buffwords
-	sw t0, 16($fp)							# guardo dicha pos_actual
+
+	lw t0, 24($fp)							# cargo el puntero en t0
+	lb t0, 0(t0)							# cargo el dato en t0
+	lw t1, POS_INICIAL_BUFF_PAL				# cargo la posicion del primer caracter
+	sb t0, 0(t1)							# guardo el dato
+	addu t1, t1, 1							# adelanto el indice en buff pal
+	sw t1, 20($fp)							# salvo el indice, pos actual del buff pal
 	li t7, 0								# inicializo t7 en 0 porque ya detecté el primer caracter
+
 
 _loopEsPalabra:
 	lw a0, 16($fp)							# preparo los argumentos para getch, paso la posicion actual del buffin
@@ -77,14 +80,16 @@ _loopEsPalabra:
 	jal getch								# guardarse v1 en el stack
 	sw v1, 16($fp)							# actualizo pos_actual del buffin
 	beq v0, zero, _analizarPalindromoFinal
-	move t3, v0								# me guardo el char en t3
+	move t3, v0								# me guardo el caracter en t3
+	lb t3, 0(t3)
 	lb a0, 0(v0)							# preparo a0 para esEspacio
 	jal esEspacio							# me fijo si el caracter es un espacio
 	beq v0, 1, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
 	addu t7, t7, 1							# escribí caracter más
-	lw t0, POS_INICIAL_BUFF_PAL				# cargo la pos_inicial de buffwords
-	addu t0, t0, t7							# le sumo la cantidad de caracteres
-	sb t0, 0(t3) 							# guardo el char leído en la pos_actual del buffwords	
+	lw t1, 20($fp)							# me traigo la pos actual del buff pal
+	sb t3, 0(t1)							# guardo el dato
+	addu t1, t1, 1							# adelanto el indice de buff pal
+	sw t1, 20($fp)							# guardo la pos actual de buff pal
 	b _loopEsPalabra
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords

@@ -163,7 +163,6 @@ int main(int argc, char** argv){
   output_fileName = seIngresoParametro_io("-o", argc, argv);
   bufferIn = seIngresoParametro_buf("-I", argc, argv);
   bufferOut = seIngresoParametro_buf("-O", argc, argv);
-  printf("%s  %s  %zu  %zu\n", input_fileName, output_fileName, bufferIn, bufferOut);
   FILE* input_file = NULL;
   FILE* output_file = NULL;
   if (aperturaDeArchivos(input_fileName, &input_file, output_fileName, &output_file) == -1) {
