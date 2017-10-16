@@ -44,7 +44,8 @@ palindrome:
 	li a1, 1						# tiene que llenar el buffer
 lecturaArchivo:
 	jal getch						# empiezo a leer
-	beq v0, zero, finDeLectura		# si devuelve 0, es un EOF, sino sigue
+#	lw t0, 0(v0)
+	beqz v0, finDeLectura			# si el char es 0, EOF. acá estamos evaluando si el puntero es 0. esto no debería cumplirse nunca
 	sw v1, 16($fp)					# me guardo la posicion actual del buff in
 	sw v0, 24($fp)					# me guardo el puntero al primer caracter
 	
@@ -79,10 +80,12 @@ _loopEsPalabra:
 	li a1, 0								# no es la primera lectura
 	jal getch								# guardarse v1 en el stack
 	sw v1, 16($fp)							# actualizo pos_actual del buffin
-	beq v0, zero, _analizarPalindromoFinal
-	move t3, v0								# me guardo el caracter en t3
-	lb t3, 0(t3)
+#	beq v0, zero, _analizarPalindromoFinal ESTO HACÍA QUILOMBO
+#	move t3, v0								# me guardo el caracter en t3
+#	lb t3, 0(t3)
 	lb a0, 0(v0)							# preparo a0 para esEspacio
+#	beq a0, zero, finDeLectura				# si el char leído es un 0, EOF.
+	move t3, a0
 	jal esEspacio							# me fijo si el caracter es un espacio
 	beq v0, 1, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
 	addu t7, t7, 1							# escribí caracter más
@@ -95,7 +98,6 @@ _loopEsPalabra:
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
 	lw a0, POS_INICIAL_BUFF_PAL
-	#subu a1, t7, 1
 	move a1, t7
 	jal palindromeString
 	#lw t1, POS_INICIAL_BUFF_PAL
@@ -150,10 +152,11 @@ _if:
 	subu t0, a0, t1		# le resto la pos_inicial a la pos_actual
 	lw t1, IBYTES
 	subu t0, t0, t1		# al resultado, le resto el tamaño. Si son iguales, tendré que pasar al syscall
-	beq t0, 1, _rellenar_buffer
+	beq t0, 0, _rellenar_buffer
 
 _lectura:
 	lw v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
+	lb t3, 0(v0)			# para gdb
 	addu v1, v0, 1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char)
 
 	b _return

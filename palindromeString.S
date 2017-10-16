@@ -39,7 +39,7 @@ _palindrome_loop:
 	lb t5, 0(t1)
 # si los caracteres espejo no son iguales entonces no es palindromo
 	bne t4, t5, _palindrome_false
-# seteo t0 y t1 para comprar los siguientes caracteres	
+# seteo t0 y t1 para comparar los siguientes caracteres	
 	addu t0, t0, 1
 	subu t1, t1, 1
 # aumento contador
@@ -50,6 +50,8 @@ _palindrome_true:
 	li v0, SYS_write
 	li a0, 1 #salida
 	lw a1, 40($fp) # guardo string
+	lw a2, 44($fp) # guardo la longitud menos uno
+	addu a2, a2, 1	# le sumo uno
 	syscall
 # si no es palindromo simplemente termino
 _palindrome_false:
