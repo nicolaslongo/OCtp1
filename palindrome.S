@@ -44,7 +44,6 @@ palindrome:
 	li a1, 1						# tiene que llenar el buffer
 lecturaArchivo:
 	jal getch						# empiezo a leer
-#	lw t0, 0(v0)
 	beqz v0, finDeLectura			# si el char es 0, EOF. acá estamos evaluando si el puntero es 0. esto no debería cumplirse nunca
 	sw v1, 16($fp)					# me guardo la posicion actual del buff in
 	sw v0, 24($fp)					# me guardo el puntero al primer caracter
@@ -54,10 +53,6 @@ lecturaArchivo:
 	jal esEspacio					# me fijo si el caracter es un espacio
 									# en v0 esta si es un espacio = 1, sino = 0
 	beq v0, 0, _definirLargoDePalabra	
-
-# si llegué acá es un espacio. ¿Para qué meteríamos el caracter en el buffer de palabras?
-# sólo hay que aumentar el puntero a pos_in del buffin y perder en el camino esos caracteres
-# si en definitiva no los queremos imprimir
 
 _noEsPalabra:
 	lw a0, 16($fp)							# si no es palabra, cargo la posicion actual del buff in y vuelvo
@@ -80,9 +75,6 @@ _loopEsPalabra:
 	li a1, 0								# no es la primera lectura
 	jal getch								# guardarse v1 en el stack
 	sw v1, 16($fp)							# actualizo pos_actual del buffin
-#	beq v0, zero, _analizarPalindromoFinal ESTO HACÍA QUILOMBO
-#	move t3, v0								# me guardo el caracter en t3
-#	lb t3, 0(t3)
 	lb a0, 0(v0)							# preparo a0 para esEspacio
 #	beq a0, zero, finDeLectura				# si el char leído es un 0, EOF.
 	move t3, a0
@@ -100,19 +92,10 @@ _analizarPalindromo:
 	lw a0, POS_INICIAL_BUFF_PAL
 	move a1, t7
 	jal palindromeString
-	#lw t1, POS_INICIAL_BUFF_PAL
 	move t7, zero							# pongo en cero mi registro t7 de nuevo
-
 	lw a0, 16($fp)							# me preparo para seguir leyendo
 	li a1, 0
 	b lecturaArchivo
-	
-_analizarPalindromoFinal:
-	beqz t7, finDeLectura					# ésta línea casi seguro es inútil
-	lw a0, POS_INICIAL_BUFF_PAL
-	#subu a1, t7, 1
-	move a1, t7
-	jal palindromeString
 
 finDeLectura:
 	lw ra, 40(sp)
@@ -168,7 +151,7 @@ _rellenar_buffer:
 	la t0, POS_INICIAL_IB
 	lw a1, 0(t0)			
 	sw a1, 16($fp)			# me guardo la posición inicial en LTA por si tengo que hacer una relectura
-	lw a2, IBYTES			# y acá está el tamaño. lo mismo que arriba
+	lw a2, IBYTES			# y acá está el tamaño
 	syscall	
 
 # Casos posibles:
