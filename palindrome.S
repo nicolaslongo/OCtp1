@@ -30,12 +30,12 @@ palindrome:
 	sw a3, OBYTES
 
 # reservo memoria para el buffer de entrada
-	lw a0, IBYTES					# preparo a0 para pasarselo a mymalloc
+	move a0, a1					# preparo a0 para pasarselo a mymalloc
 	jal mymalloc
 	sw v0, 16($fp)					# salvo la posicion inicial del buffer en el stack frame
 	sw v0, POS_INICIAL_IB 			# lo guardo como variable global
 
-	lw a0, IBYTES					# utilizamos tamanio que el buff in
+	move a0, a1					# utilizamos tamanio que el buff in
 	jal mymalloc					# en v0 tengo la posicion de memoria del buffer para palabras
 	sw v0, 20($fp)					# pos_actual del buffwords
 	sw v0, POS_INICIAL_BUFF_PAL
@@ -74,9 +74,9 @@ _loopEsPalabra:
 	lw a0, 16($fp)							# preparo los argumentos para getch, paso la posicion actual del buffin
 	li a1, 0								# no es la primera lectura
 	jal getch								# guardarse v1 en el stack
+	beq v0, zero, _analizarPalindromoFinal	# si el char leído es un 0, EOF.
 	sw v1, 16($fp)							# actualizo pos_actual del buffin
 	lb a0, 0(v0)							# preparo a0 para esEspacio
-#	beq a0, zero, finDeLectura				# si el char leído es un 0, EOF.
 	move t3, a0
 	jal esEspacio							# me fijo si el caracter es un espacio
 	beq v0, 1, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
@@ -97,7 +97,19 @@ _analizarPalindromo:
 	li a1, 0
 	b lecturaArchivo
 
+_analizarPalindromoFinal:
+ 	beqz t7, finDeLectura					# ésta línea casi seguro es inútil
+ 	lw a0, POS_INICIAL_BUFF_PAL
+ 	move a1, t7
+	jal palindromeString
+
 finDeLectura:
+
+	lw a0, POS_INICIAL_IB					# preparo los argumentos para
+	jal myfree								# liberar la memoria pedida
+	lw a0, POS_INICIAL_BUFF_PAL
+	jal myfree
+
 	lw ra, 40(sp)
 	lw $fp, 32(sp)
 	lw gp, 36(sp)
