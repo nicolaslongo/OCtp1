@@ -157,6 +157,20 @@ _lectura:
 	b _return
 
 _rellenar_buffer:
+
+	lw a2, IBYTES
+	subu a2, a2, 1
+	la t0, POS_INICIAL_IB
+	lw t0, 0(t0)
+
+_inicializar:
+	la t2, ESPACIO
+	lb t2, 0(t2)
+	sb t2, 0(t0)
+	subu a2, a2, 1
+	addu t0, t0, 1
+	bgtz a2, _inicializar
+
 	li v0, SYS_read
 	la t0, FDESCRIPTOR_DE_LECTURA
 	lw a0, 0(t0)
@@ -178,6 +192,9 @@ _comprobacion:
 	la t2, IBYTES
 	lw t1, 0(t2)					
 	subu t0, v0, t1
+	la t2, POS_INICIAL_IB
+	lw t1, 0(t2)
+	subu t0, t0, t1
 	bgtz t0, _relectura				# si pasa ésta línea, entonces a3=0 y v0=ibytes
 
 	la t2, POS_INICIAL_IB
@@ -229,3 +246,4 @@ IBYTES: .word 0
 OBYTES: .word 0
 POS_INICIAL_IB: .word 0
 POS_INICIAL_BUFF_PAL: .word 0
+ESPACIO: .byte ' '
