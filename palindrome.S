@@ -51,7 +51,7 @@ palindrome:
 	li a1, 1						# tiene que llenar el buffer
 lecturaArchivo:
 	jal getch						# empiezo a leer
-	beqz v0, finDeLectura			# si el char es 0, EOF. acá estamos evaluando si el puntero es 0. esto no debería cumplirse nunca
+	beqz v0, finDeLecturaSinPal		# si el char es 0, EOF. acá estamos evaluando si el puntero es 0. esto no debería cumplirse nunca
 	sw v1, 16($fp)					# me guardo la posicion actual del buff in
 	sw v0, 24($fp)					# me guardo el puntero al primer caracter
 	
@@ -109,6 +109,13 @@ _analizarPalindromoFinal:
  	beqz t7, finDeLectura					# ésta línea casi seguro es inútil
  	lw a0, POS_INICIAL_BUFF_PAL
  	move a1, t7
+	lw a2, 28($fp)
+	li a3, 1								# esto es para indicarle a putch que es la ultima escritura
+	jal palindromeString
+
+finDeLecturaSinPal:
+	lw a0, SALTO_DE_LINEA
+ 	li a1, 0
 	lw a2, 28($fp)
 	li a3, 1								# esto es para indicarle a putch que es la ultima escritura
 	jal palindromeString
