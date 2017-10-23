@@ -35,10 +35,17 @@ palindrome:
 	sw v0, 16($fp)					# salvo la posicion inicial del buffer en el stack frame
 	sw v0, POS_INICIAL_IB 			# lo guardo como variable global
 
+# reservo memoria para el buffer de palabras
 	move a0, a1					# utilizamos tamanio que el buff in
 	jal mymalloc					# en v0 tengo la posicion de memoria del buffer para palabras
 	sw v0, 20($fp)					# pos_actual del buffwords
 	sw v0, POS_INICIAL_BUFF_PAL
+
+# reservo memoria para el buffer de salida
+	move a0, a3
+	jal mymalloc
+	sw v0, 28($fp)
+	sw v0, POS_INICIAL_OB
 
 	lw a0, POS_INICIAL_IB			# preparo los argumentos para getch, paso la posicion actual del buffin (que resulta ser la inicial)
 	li a1, 1						# tiene que llenar el buffer
@@ -69,7 +76,6 @@ _definirLargoDePalabra:
 	sw t1, 20($fp)							# salvo el indice, pos actual del buff pal
 	li t7, 0								# inicializo t7 en 0 porque ya detecté el primer caracter
 
-
 _loopEsPalabra:
 	lw a0, 16($fp)							# preparo los argumentos para getch, paso la posicion actual del buffin
 	li a1, 0								# no es la primera lectura
@@ -89,9 +95,11 @@ _loopEsPalabra:
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
-	lw a0, POS_INICIAL_BUFF_PAL
-	move a1, t7
+	lw a0, POS_INICIAL_BUFF_PAL				# preparo parametros para palindrome
+	move a1, t7								# posicion en el buffer de palabras, longitud -1
+	lw a2, 28($fp)							# posicion en el buffer out
 	jal palindromeString
+	sw v0, 28($fp)							# guardo la pos actual del buff out
 	move t7, zero							# pongo en cero mi registro t7 de nuevo
 	lw a0, 16($fp)							# me preparo para seguir leyendo
 	li a1, 0
@@ -101,14 +109,18 @@ _analizarPalindromoFinal:
  	beqz t7, finDeLectura					# ésta línea casi seguro es inútil
  	lw a0, POS_INICIAL_BUFF_PAL
  	move a1, t7
+	lw a2, 28($fp)
+	li a3, 1								# esto es para indicarle a putch que es la ultima escritura
 	jal palindromeString
 
 finDeLectura:
 
 	lw a0, POS_INICIAL_IB					# preparo los argumentos para
 	jal myfree								# liberar la memoria pedida
-	lw a0, POS_INICIAL_BUFF_PAL
-	jal myfree
+	#lw a0, POS_INICIAL_BUFF_PAL
+	#jal myfree
+	#lw a0, POS_INICIAL_OB
+	#jal myfree
 
 	lw ra, 40(sp)
 	lw $fp, 32(sp)
@@ -157,20 +169,6 @@ _lectura:
 	b _return
 
 _rellenar_buffer:
-
-	lw a2, IBYTES
-	subu a2, a2, 1
-	la t0, POS_INICIAL_IB
-	lw t0, 0(t0)
-
-_inicializar:
-	la t2, ESPACIO
-	lb t2, 0(t2)
-	sb t2, 0(t0)
-	subu a2, a2, 1
-	addu t0, t0, 1
-	bgtz a2, _inicializar
-
 	li v0, SYS_read
 	la t0, FDESCRIPTOR_DE_LECTURA
 	lw a0, 0(t0)
@@ -192,9 +190,6 @@ _comprobacion:
 	la t2, IBYTES
 	lw t1, 0(t2)					
 	subu t0, v0, t1
-	la t2, POS_INICIAL_IB
-	lw t1, 0(t2)
-	subu t0, t0, t1
 	bgtz t0, _relectura				# si pasa ésta línea, entonces a3=0 y v0=ibytes
 
 	la t2, POS_INICIAL_IB
@@ -237,13 +232,176 @@ _return:
 
 .end getch
 
+.globl putch
+.ent putch
+
+putch:
+	.frame $fp, 40, ra
+	.set noreorder
+	.cpload t9
+	.set reorder
+
+	subu sp, sp, 40 	# pido espacio para mi Stack Frame
+	.cprestore 28		# salvo gp en 28
+	sw $fp, 24(sp)		# salvo fp en 24
+	sw ra, 32(sp)		# salvo ra en 32
+	move $fp, sp		# a partir de acá trabajo con fp
+
+# me guardo los parámetros que no guardo la caller (por convención de ABI)
+	sw a0, 40($fp)		# salvo posicion actual del buffer
+	sw a1, 44($fp)		# salvo el puntero al char a escribir
+	sw a2, 48($fp)		# salvo el tipo de escritura
+
+# compruebo que quede espacio en el buffer de salida
+	la t2, POS_INICIAL_OB
+	lw t1, 0(t2)
+	subu t0, a0, t1				# le resto la pos_inicial a la pos_actual
+	sw t0, 20($fp)				# lo guardo en el stack frame
+	beq a2, 1, _vaciar_buffer	# si a2 es 1, significa que es una ultima escritura
+	lw t1, OBYTES
+	subu t0, t0, t1				# al resultado le resto el tamaño. Si son iguales, tendré que pasar al syscall
+	beq t0, 0, _vaciar_buffer 
+
+_escritura_putch:
+	lw t0, 44($fp)			# cargo el puntero al char a escribir en t0
+	lb t3, 0(t0)
+	lw t2, 40($fp)			# cargo en t2 la pos_actual del buffer de salida
+	sb t3, 0(t2)			# guardo el char en la pos_actual del buffer de salida
+	addu t2, t2, 1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char)
+	sw t2, 40($fp)
+	move v0, t2
+	b _return_putch
+
+_vaciar_buffer:
+	li v0, SYS_write
+	la t0, FDESCRIPTOR_DE_ESCRITURA
+	lw a0, 0(t0)
+	la t0, POS_INICIAL_OB
+	lw a1, 0(t0)				# acá guardo la posición inicial del buffer
+	lw a2, 20($fp)				# acá guardo el tamaño del buffer a imprimir
+	syscall
+	lw v0, POS_INICIAL_OB		# la posicion actual vuelve a ser la inicial
+	sw v0, 40($fp)
+	b _escritura_putch
+
+_return_putch:			# ya tengo en v0 la pos_actual nueva
+	lw ra, 32(sp)
+	lw $fp, 24(sp)
+	lw gp, 28(sp)
+	addu sp, sp, 40
+	jr ra
+
+.end putch
+
+.globl palindromeString
+.ent palindromeString
+
+palindromeString:
+	.frame $fp, 40, ra
+	.set noreorder
+	.cpload t9
+	.set reorder
+
+	subu sp, sp, 40 	# pido espacio para mi Stack Frame
+	.cprestore 28		# salvo gp en 28
+	sw $fp, 24(sp)		# salvo fp en 24
+	sw ra, 32(sp)		# salvo ra en 32
+	move $fp, sp		# a partir de acá trabajo con fp
+	
+# me guardo los parámetros (por convención de ABI)
+	sw a0, 40($fp)		# salvo el string
+	sw a1, 44($fp)		# longitud string menos uno
+	sw a2, 48($fp)		# pos_actual del buff de salida
+	sw a3, 52($fp)		# guardo el tipo de escritura a pasarle a putch
+
+	sw a2, 20($fp)		# la guardo en el stack frame de palindromeString
+
+# guardo en t0 el comienzo del string
+	move t0, a0
+# guardo en t1 el final del string
+	addu t1, a0, a1
+# guardo en t2 la mitad del string (le sumo uno porque trunca)
+	div t2, a1, 2
+	addu t2, t2, 1
+# guardo en t3 las posiciones que revise (inicializo en 0)
+	xor t3, t3, t3
+# sigo revisando si no recorri la mitad del string
+_palindrome_loop:
+# si ya compare todo el string finalizo
+	beq t2, t3, _palindrome_true
+# cargo t0 y t1
+	lb t4, 0(t0)
+	lb t5, 0(t1)
+# si los caracteres espejo no son iguales entonces no es palindromo
+	bne t4, t5, _palindrome_false
+# seteo t0 y t1 para comparar los siguientes caracteres	
+	addu t0, t0, 1
+	subu t1, t1, 1
+# aumento contador
+	addu t3, t3, 1
+	b _palindrome_loop
+# si es palindromo le paso caracter por caracter a putch
+_palindrome_true:
+	lw t0, 40($fp)		# en t0 tengo el string
+	lw t1, 44($fp)		# en t1 tengo la longitud
+	lw t2, 20($fp)		# en t2 tengo la pos_actual del buff de salida
+	li t3, 0			# en t3 tengo el contador
+	sw t3, 16($fp)		# guardo el contador a 16 de fp
+	move a0, t2
+	move a1, t0
+_loop_putch:
+	jal putch
+	lw t3, 16($fp)		# cargo el contador en t3
+	sw v0, 20($fp)		# me guardo la nueva pos_actual
+	lw t1, 44($fp)		# en t1 tengo la longitud - 1
+	subu t4, t1, t3
+	beq t4, 0, _return_pal
+	addu t3, t3, 1		# incremento el contador
+	sw t3, 16($fp)		# lo vuelvo a guardar
+	move a0, v0
+	lw t0, 40($fp)		# en t0 tengo el string
+	addu a1, t0, t3
+	b _loop_putch
+	
+#	li v0, SYS_write
+#	li a0, 1 #salida
+#	lw a1, 40($fp) # guardo string
+#	lw a2, 44($fp) # guardo la longitud menos uno
+#	addu a2, a2, 1	# le sumo uno
+#	syscall
+
+
+_return_pal:
+	lw a0, 20($fp)			# cargo la posicion actual del buff out
+	la a1, SALTO_DE_LINEA	# cargo el salto de linea como caracter a imprimir
+	lw a2, 52($fp)			# indico que tipo de escritura es, final o normal
+	jal putch 				# lo meto en buff out, para imprimir
+	sw v0, 20($fp)			
+
+
+# si no es palindromo simplemente termino
+
+_palindrome_false:
+	lw v0, 20($fp)			# devuelvo la nueva pos_actual del buff de salida
+	lw ra, 32(sp)
+	lw $fp, 24(sp)
+	lw gp, 28(sp)
+	addu sp, sp, 40
+	jr	ra
+
+.end palindromeString
+
+
+
+
 .data
 
-AUX: .word 0
 FDESCRIPTOR_DE_LECTURA: .word 0
 FDESCRIPTOR_DE_ESCRITURA: .word 0
 IBYTES: .word 0
 OBYTES: .word 0
 POS_INICIAL_IB: .word 0
+POS_INICIAL_OB: .word 0
 POS_INICIAL_BUFF_PAL: .word 0
-ESPACIO: .byte ' '
+SALTO_DE_LINEA: .asciiz "\n"
+
