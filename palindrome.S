@@ -80,6 +80,7 @@ _loopEsPalabra:
 	lw a0, 16($fp)							# preparo los argumentos para getch, paso la posicion actual del buffin
 	li a1, 0								# no es la primera lectura
 	jal getch								# guardarse v1 en el stack
+	beqz v0, _analizarPalindromoFinal
 	sw v1, 16($fp)							# actualizo pos_actual del buffin
 	lb a0, 0(v0)							# preparo a0 para esEspacio
 	move t3, a0
@@ -115,8 +116,8 @@ finDeLectura:
 
 	lw a0, POS_INICIAL_IB					# preparo los argumentos para
 	jal myfree								# liberar la memoria pedida
-	#lw a0, POS_INICIAL_BUFF_PAL
-	#jal myfree
+	lw a0, POS_INICIAL_BUFF_PAL
+	jal myfree
 	#lw a0, POS_INICIAL_OB
 	#jal myfree
 
@@ -373,6 +374,21 @@ _lectura:
 	b _return
 
 _rellenar_buffer:
+
+	lw a2, IBYTES
+	subu a2, a2, 1
+	la t0, POS_INICIAL_IB
+	lw t0, 0(t0)
+
+_inicializar:
+	la t2, ESPACIO
+	lb t2, 0(t2)
+	sb t2, 0(t0)
+	subu a2, a2, 1
+	addu t0, t0, 1
+	bgtz a2, _inicializar
+
+
 	li v0, SYS_read
 	la t0, FDESCRIPTOR_DE_LECTURA
 	lw a0, 0(t0)
@@ -394,6 +410,11 @@ _comprobacion:
 	la t2, IBYTES
 	lw t1, 0(t2)					
 	subu t0, v0, t1
+
+	la t2, POS_INICIAL_IB
+	lw t1, 0(t2)
+	subu t0, t0, t1
+
 	bgtz t0, _relectura				# si pasa ésta línea, entonces a3=0 y v0=ibytes
 
 	la t2, POS_INICIAL_IB
@@ -447,3 +468,4 @@ POS_INICIAL_OB: .word 0
 POS_INICIAL_BUFF_PAL: .word 0
 SALTO_DE_LINEA: .asciiz "\n"
 ENTRE: .asciiz "ENTRE\n"
+ESPACIO: .byte ' '
