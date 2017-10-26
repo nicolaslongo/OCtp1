@@ -30,19 +30,20 @@ palindrome:
 	sw a3, OBYTES
 
 # reservo memoria para el buffer de entrada
-	move a0, a1					# preparo a0 para pasarselo a mymalloc
+	lw a0, IBYTES					# preparo a0 para pasarselo a mymalloc
 	jal mymalloc
 	sw v0, 16($fp)					# salvo la posicion inicial del buffer en el stack frame
 	sw v0, POS_INICIAL_IB 			# lo guardo como variable global
 
 # reservo memoria para el buffer de palabras
-	move a0, a1					# utilizamos tamanio que el buff in
+	lw a0, TAM_BUFF_PAL				# arrancamos con tamanio de buffer de 200, si viene una palabra
+									# mas grande habria que "redimensionar"
 	jal mymalloc					# en v0 tengo la posicion de memoria del buffer para palabras
 	sw v0, 20($fp)					# pos_actual del buffwords
 	sw v0, POS_INICIAL_BUFF_PAL
 
 # reservo memoria para el buffer de salida
-	move a0, a3
+	lw a0, OBYTES
 	jal mymalloc
 	sw v0, 28($fp)
 	sw v0, POS_INICIAL_OB
@@ -86,12 +87,32 @@ _loopEsPalabra:
 	move t3, a0
 	jal esEspacio							# me fijo si el caracter es un espacio
 	beq v0, 1, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
+	b _analizar_redimension					# me fijo si hay que redimensionar, sino sigo
+_sigo:	
 	addu t7, t7, 1							# escribí caracter más
 	lw t1, 20($fp)							# me traigo la pos actual del buff pal
 	sb t3, 0(t1)							# guardo el dato
 	addu t1, t1, 1							# adelanto el indice de buff pal
 	sw t1, 20($fp)							# guardo la pos actual de buff pal
 	b _loopEsPalabra
+
+
+_analizar_redimension:
+	lw t0, POS_INICIAL_BUFF_PAL				# cargo la posicion inicial del buff pal
+	lw t1, 20($fp)							# cargo la posicion actual del buff pal
+	subu t0, t1, t0							# resto
+	lw t1, TAM_BUFF_PAL						
+	subu t0, t1, t0
+	beq t0, zero, _redimension 				# si esta lleno redimensiono
+	b _sigo									# sino vuelvo a donde me llamaron
+
+_redimension:
+	jal redimensionar
+	sw v0, 20($fp)							# actualizo la pos actual del buff pal
+
+	b _sigo
+
+
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
@@ -112,14 +133,17 @@ _analizarPalindromoFinal:
 	lw a2, 28($fp)
 	jal palindromeString
 
+
+
+
 finDeLectura:
 
 	lw a0, POS_INICIAL_IB					# preparo los argumentos para
 	jal myfree								# liberar la memoria pedida
 	lw a0, POS_INICIAL_BUFF_PAL
 	jal myfree
-	#lw a0, POS_INICIAL_OB
-	#jal myfree
+	lw a0, POS_INICIAL_OB
+	jal myfree
 
 	lw ra, 40(sp)
 	lw $fp, 32(sp)
@@ -128,6 +152,77 @@ finDeLectura:
 	jr	ra
 
 .end palindrome
+
+.globl redimensionar
+.ent redimensionar
+
+redimensionar:
+
+	.frame $fp, 40, ra
+	.set noreorder
+	.cpload t9
+	.set reorder
+
+	subu sp, sp, 40 	# pido espacio para mi Stack Frame
+	.cprestore 28		# salvo gp en 28
+	sw $fp, 24(sp)		# salvo fp en 24
+	sw ra, 32(sp)		# salvo ra en 32
+	move $fp, sp		# a partir de acá trabajo con fp
+	
+
+	lw t0, TAM_BUFF_PAL		# multiplico el tamanio actual x 2
+	li t1, 2				# para el nuevo malloc
+	mul t0, t0, t1			
+	sw t0, 20($fp)			# me guardo el nuevo tamanio 
+	move a0, t0				# preparo a0
+	jal mymalloc
+	sw v0, 16($fp)			# en v0 tengo la posicion inicial del nuevo buffer
+	li t0, 0				# inicializo un contador
+	
+
+_loop_llenar_buffer:
+	lw t1 , POS_INICIAL_BUFF_PAL
+	addu t1, t1, t0					# calculo la posicion en el buff pal viejo
+	lb t2, 0(t1)					# cargo el char
+	lw t6, 16($fp)
+	addu t6, t6, t0					# calculo la pos actual en el nuevo buff
+	sb t2, 0(t6)					# meto el char en el nuevo buff
+	addu t0, t0, 1					# aumento contador
+	lw t1, TAM_BUFF_PAL				# cargo el tamanio del buffer
+	subu t2, t1, t0 				# resto
+	bnez t2, _loop_llenar_buffer	# si no es 0 sigo loopeando
+
+_return_redimensionar:
+
+
+	#PRINT PARA ASEGURARME QUE ENTRO EN LA ULTIMA ESCRITURA
+#	li v0, SYS_write
+#	li a0, 1 #salida
+#	la a1, ENTRE # guardo string
+#	li a2, 6
+#	syscall
+	#################################################
+
+	lw a0, POS_INICIAL_BUFF_PAL		# libero el malloc anterior
+	jal myfree
+
+	lw t1, 16($fp)					# preparo la posicion a devolver
+	addu t1, t0, t1
+	move v0, t1
+	lw t0, 20($fp)					# actualizo variables globales
+	sw t0, TAM_BUFF_PAL
+	lw t0, 16($fp)
+	sw t0, POS_INICIAL_BUFF_PAL
+
+
+	lw ra, 32(sp)
+	lw $fp, 24(sp)
+	lw gp, 28(sp)
+	addu sp, sp, 40
+	jr	ra
+
+
+.end redimensionar
 
 .globl palindromeString
 .ent palindromeString
@@ -189,6 +284,7 @@ _palindrome_true:
 	sw t3, 16($fp)		# guardo el contador a 16 de fp
 	move a0, t2
 	move a1, t0
+	li a2, 0
 _loop_putch:
 	jal putch
 	lw t3, 16($fp)		# cargo el contador en t3
@@ -201,6 +297,7 @@ _loop_putch:
 	move a0, v0
 	lw t0, 40($fp)		# en t0 tengo el string
 	addu a1, t0, t3
+	li a2, 0
 	b _loop_putch
 	
 _return_pal:
@@ -244,11 +341,11 @@ putch:
 # compruebo que quede espacio en el buffer de salida
 	la t2, POS_INICIAL_OB
 	lw t1, 0(t2)
-	subu t0, a0, t1				# le resto la pos_inicial a la pos_actual
-	sw t0, 20($fp)				# lo guardo en el stack frame
-	beq a2, 2, _vaciar_buffer_final	# si a2 es 2 (con 1 rompia, nose porque) significa que es una ultima escritura
+	subu t0, a0, t1						# le resto la pos_inicial a la pos_actual
+	sw t0, 20($fp)						# lo guardo en el stack frame
+	beq a2, 2, _vaciar_buffer_final		# si a2 es 2 (con 1 rompia, nose porque) significa que es una ultima escritura
 	lw t1, OBYTES
-	subu t0, t0, t1				# al resultado le resto el tamaño. Si son iguales, tendré que pasar al syscall
+	subu t0, t0, t1						# al resultado le resto el tamaño. Si son iguales, tendré que pasar al syscall
 	beq t0, 0, _vaciar_buffer 
 
 _escritura_putch:
@@ -256,7 +353,7 @@ _escritura_putch:
 	lb t3, 0(t0)
 	lw t2, 40($fp)			# cargo en t2 la pos_actual del buffer de salida
 	sb t3, 0(t2)			# guardo el char en la pos_actual del buffer de salida
-	addu t2, t2, 1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char)
+	addu t2, t2, 1			# en t2, la nueva posicion actual (la anterior, más el tamaño de un char)
 	sw t2, 40($fp)
 	move v0, t2
 	b _return_putch
@@ -306,6 +403,21 @@ _vaciar_buffer_final:
 # esto funciona sólo si en v0 tengo los bytes que sí puedo escribir
 
 _reescritura:
+
+#PRINT PARA ASEGURARME QUE ENTRO EN LA ULTIMA ESCRITURA
+
+	sw v0, 12($fp)
+
+	li v0, SYS_write
+	li a0, 1 #salida
+	la a1, ENTRE # guardo string
+	li a2, 6
+	syscall
+
+	lw v0, 12($fp)
+
+	#################################################
+
 	sw t1, 16($fp)			# mi nueva posición inicial estaba en t1. la guardo en LTA
 	move a1, t1 			# ya tengo en a1 el puntero al string
 	la t3, FDESCRIPTOR_DE_ESCRITURA
@@ -469,3 +581,4 @@ POS_INICIAL_BUFF_PAL: .word 0
 SALTO_DE_LINEA: .asciiz "\n"
 ENTRE: .asciiz "ENTRE\n"
 ESPACIO: .byte ' '
+TAM_BUFF_PAL: .word 200
