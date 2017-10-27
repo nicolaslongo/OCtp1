@@ -68,7 +68,6 @@ _noEsPalabra:
 	b lecturaArchivo						# sigo leyendo
 
 _definirLargoDePalabra:
-
 	lw t0, 24($fp)							# cargo el puntero en t0
 	lb t0, 0(t0)							# cargo el dato en t0
 	lw t1, POS_INICIAL_BUFF_PAL				# cargo la posicion del primer caracter
@@ -158,15 +157,15 @@ finDeLectura:
 
 redimensionar:
 
-	.frame $fp, 40, ra
+	.frame $fp, 48, ra
 	.set noreorder
 	.cpload t9
 	.set reorder
 
-	subu sp, sp, 40 	# pido espacio para mi Stack Frame
-	.cprestore 28		# salvo gp en 28
-	sw $fp, 24(sp)		# salvo fp en 24
-	sw ra, 32(sp)		# salvo ra en 32
+	subu sp, sp, 48 	# pido espacio para mi Stack Frame
+	.cprestore 36		# salvo gp en 28
+	sw $fp, 32(sp)		# salvo fp en 24
+	sw ra, 40(sp)		# salvo ra en 32
 	move $fp, sp		# a partir de acá trabajo con fp
 	
 
@@ -189,11 +188,12 @@ _loop_llenar_buffer:
 	sb t2, 0(t6)					# meto el char en el nuevo buff
 	addu t0, t0, 1					# aumento contador
 	lw t1, TAM_BUFF_PAL				# cargo el tamanio del buffer
+#	beq t1, t0, _loop_llenar_buffer
 	subu t2, t1, t0 				# resto
+	sw t0, 24($fp)
 	bnez t2, _loop_llenar_buffer	# si no es 0 sigo loopeando
 
 _return_redimensionar:
-
 
 	#PRINT PARA ASEGURARME QUE ENTRO EN LA ULTIMA ESCRITURA
 #	li v0, SYS_write
@@ -207,7 +207,8 @@ _return_redimensionar:
 	jal myfree
 
 	lw t1, 16($fp)					# preparo la posicion a devolver
-	addu t1, t0, t1
+	lw t0, 24($fp)
+	addu t1, t0, t1				# este t0 es bullshit porque viene de myfree
 	move v0, t1
 	lw t0, 20($fp)					# actualizo variables globales
 	sw t0, TAM_BUFF_PAL
@@ -215,10 +216,10 @@ _return_redimensionar:
 	sw t0, POS_INICIAL_BUFF_PAL
 
 
-	lw ra, 32(sp)
-	lw $fp, 24(sp)
-	lw gp, 28(sp)
-	addu sp, sp, 40
+	lw ra, 40(sp)
+	lw $fp, 32(sp)
+	lw gp, 36(sp)
+	addu sp, sp, 48
 	jr	ra
 
 
@@ -581,4 +582,4 @@ POS_INICIAL_BUFF_PAL: .word 0
 SALTO_DE_LINEA: .asciiz "\n"
 ENTRE: .asciiz "ENTRE\n"
 ESPACIO: .byte ' '
-TAM_BUFF_PAL: .word 200
+TAM_BUFF_PAL: .word 100
