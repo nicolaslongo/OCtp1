@@ -84,6 +84,7 @@ _loopEsPalabra:
 	sw v1, 16($fp)							# actualizo pos_actual del buffin
 	lb a0, 0(v0)							# preparo a0 para esEspacio
 	move t3, a0
+	sw v0, ULTIMO_CHAR_REDIM
 	jal esEspacio							# me fijo si el caracter es un espacio
 	beq v0, 1, _analizarPalindromo 			# si el caracter es un espacio no escribo ni sumo nada
 	b _analizar_redimension					# me fijo si hay que redimensionar, sino sigo
@@ -108,6 +109,8 @@ _analizar_redimension:
 _redimension:
 	jal redimensionar
 	sw v0, 20($fp)							# actualizo la pos actual del buff pal
+	lw t3, ULTIMO_CHAR_REDIM
+	lb t3, 0(t3)
 
 	b _sigo
 
@@ -163,15 +166,14 @@ redimensionar:
 	.set reorder
 
 	subu sp, sp, 48 	# pido espacio para mi Stack Frame
-	.cprestore 36		# salvo gp en 28
-	sw $fp, 32(sp)		# salvo fp en 24
-	sw ra, 40(sp)		# salvo ra en 32
+	.cprestore 36		# salvo gp en 36
+	sw $fp, 32(sp)		# salvo fp en 32
+	sw ra, 40(sp)		# salvo ra en 40
 	move $fp, sp		# a partir de acá trabajo con fp
 	
 
 	lw t0, TAM_BUFF_PAL		# multiplico el tamanio actual x 2
-	li t1, 2				# para el nuevo malloc
-	mul t0, t0, t1			
+	addu t0, t0, t0			# para el nuevo malloc
 	sw t0, 20($fp)			# me guardo el nuevo tamanio 
 	move a0, t0				# preparo a0
 	jal mymalloc
@@ -208,7 +210,7 @@ _return_redimensionar:
 
 	lw t1, 16($fp)					# preparo la posicion a devolver
 	lw t0, 24($fp)
-	addu t1, t0, t1				# este t0 es bullshit porque viene de myfree
+	addu t1, t1, t0
 	move v0, t1
 	lw t0, 20($fp)					# actualizo variables globales
 	sw t0, TAM_BUFF_PAL
@@ -583,3 +585,4 @@ SALTO_DE_LINEA: .asciiz "\n"
 ENTRE: .asciiz "ENTRE\n"
 ESPACIO: .byte ' '
 TAM_BUFF_PAL: .word 100
+ULTIMO_CHAR_REDIM: .word
