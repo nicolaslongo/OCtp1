@@ -96,7 +96,6 @@ _sigo:
 	sw t1, 20($fp)							# guardo la pos actual de buff pal
 	b _loopEsPalabra
 
-
 _analizar_redimension:
 	lw t0, POS_INICIAL_BUFF_PAL				# cargo la posicion inicial del buff pal
 	lw t1, 20($fp)							# cargo la posicion actual del buff pal
@@ -111,10 +110,7 @@ _redimension:
 	sw v0, 20($fp)							# actualizo la pos actual del buff pal
 	lw t3, ULTIMO_CHAR_REDIM
 	lb t3, 0(t3)
-
 	b _sigo
-
-
 
 # si salgo de acá, entonces ya tengo la palabra entera en el buffwords
 _analizarPalindromo:
@@ -134,9 +130,6 @@ _analizarPalindromoFinal:
 	li a3, 2								# esto es para indicarle a putch que es la ultima escritura
 	lw a2, 28($fp)
 	jal palindromeString
-
-
-
 
 finDeLectura:
 
@@ -190,20 +183,11 @@ _loop_llenar_buffer:
 	sb t2, 0(t6)					# meto el char en el nuevo buff
 	addu t0, t0, 1					# aumento contador
 	lw t1, TAM_BUFF_PAL				# cargo el tamanio del buffer
-#	beq t1, t0, _loop_llenar_buffer
 	subu t2, t1, t0 				# resto
 	sw t0, 24($fp)
 	bnez t2, _loop_llenar_buffer	# si no es 0 sigo loopeando
 
 _return_redimensionar:
-
-	#PRINT PARA ASEGURARME QUE ENTRO EN LA ULTIMA ESCRITURA
-#	li v0, SYS_write
-#	li a0, 1 #salida
-#	la a1, ENTRE # guardo string
-#	li a2, 6
-#	syscall
-	#################################################
 
 	lw a0, POS_INICIAL_BUFF_PAL		# libero el malloc anterior
 	jal myfree
@@ -217,13 +201,11 @@ _return_redimensionar:
 	lw t0, 16($fp)
 	sw t0, POS_INICIAL_BUFF_PAL
 
-
 	lw ra, 40(sp)
 	lw $fp, 32(sp)
 	lw gp, 36(sp)
 	addu sp, sp, 48
 	jr	ra
-
 
 .end redimensionar
 
@@ -250,9 +232,9 @@ palindromeString:
 
 	sw a2, 20($fp)		# la guardo en el stack frame de palindromeString
 
-	beq a3, 2, _return_pal	# SI LE PASO UN 2 SIGNIFICA QUE NO TENGO QUE ANALIZAR
-							# NINGUN PALINDROMO, SOLO INDICAR QUE ESCRIBA LO QUE 
-							# TIENE EN EL BUFFER A PUTCH
+# Si el programa recibe un 2, significa que no debe analizar ningún palindromo
+# sino vaciar el buffer de palabras
+	beq a3, 2, _return_pal	
 
 # guardo en t0 el comienzo del string
 	move t0, a0
@@ -346,7 +328,7 @@ putch:
 	lw t1, 0(t2)
 	subu t0, a0, t1						# le resto la pos_inicial a la pos_actual
 	sw t0, 20($fp)						# lo guardo en el stack frame
-	beq a2, 2, _vaciar_buffer_final		# si a2 es 2 (con 1 rompia, nose porque) significa que es una ultima escritura
+	beq a2, 2, _vaciar_buffer_final		# si a2 es 2 significa que es una ultima escritura
 	lw t1, OBYTES
 	subu t0, t0, t1						# al resultado le resto el tamaño. Si son iguales, tendré que pasar al syscall
 	beq t0, 0, _vaciar_buffer 
@@ -375,16 +357,6 @@ _vaciar_buffer:
 	b _escritura_putch
 
 _vaciar_buffer_final:
-
-	#PRINT PARA ASEGURARME QUE ENTRO EN LA ULTIMA ESCRITURA
-#	li v0, SYS_write
-#	li a0, 1 #salida
-#	la a1, ENTRE # guardo string
-#	li a2, 6
-#	syscall
-	#################################################
-
-
 	li v0, SYS_write
 	la t0, FDESCRIPTOR_DE_ESCRITURA
 	lw a0, 0(t0)
@@ -403,30 +375,14 @@ _vaciar_buffer_final:
 # si llegué hasta acá leyó menos que el tamaño que debía imprimir
 	lw t1, 16($fp)				# pos_inicial de lectura
 	addu t1, t1, v0				# le sumo a la posicion inicial lo que ya escribi
-# esto funciona sólo si en v0 tengo los bytes que sí puedo escribir
 
 _reescritura:
-
-#PRINT PARA ASEGURARME QUE ENTRO EN LA ULTIMA ESCRITURA
-
-	sw v0, 12($fp)
-
-	li v0, SYS_write
-	li a0, 1 #salida
-	la a1, ENTRE # guardo string
-	li a2, 6
-	syscall
-
-	lw v0, 12($fp)
-
-	#################################################
-
 	sw t1, 16($fp)			# mi nueva posición inicial estaba en t1. la guardo en LTA
 	move a1, t1 			# ya tengo en a1 el puntero al string
 	la t3, FDESCRIPTOR_DE_ESCRITURA
 	lw a0, 0(t3)			# ya tengo en a0 el FD
 # mi nuevo tamaño será el tamaño anterior - los caracteres escritos
-	lw t2, 20($fp)			# esto en realidad puede ir variando la segunda o tercera vez que entre
+	lw t2, 20($fp)	
 	subu a2, t2, t5
 	sw a2, 20($fp)			# me guardo el nuevo tamaño a leer para comprobar luego
 	syscall
@@ -483,9 +439,8 @@ _if:
 
 _lectura:
 	lw v0, 40($fp)			# en v0 guardo el char (leído) que es lo que voy a devolver
-	lb t3, 0(v0)			# para gdb
+	lb t3, 0(v0)
 	addu v1, v0, 1			# en v1, la nueva posicion actual (la anterior, más el tamaño de un char)
-
 	b _return
 
 _rellenar_buffer:
@@ -555,7 +510,7 @@ _relectura:
 	la t3, FDESCRIPTOR_DE_LECTURA
 	lw a0, 0(t3)
 	lw t1, 48($fp)
-	subu t0, t1, v0					# mi nuevo tamaño será el tamaño anterior - los caracteres leídos
+	subu t0, t1, v0			# mi nuevo tamaño será el tamaño anterior - los caracteres leídos
 	move a2, t0
 	syscall
 	b _comprobacion
@@ -582,7 +537,6 @@ POS_INICIAL_IB: .word 0
 POS_INICIAL_OB: .word 0
 POS_INICIAL_BUFF_PAL: .word 0
 SALTO_DE_LINEA: .asciiz "\n"
-ENTRE: .asciiz "ENTRE\n"
 ESPACIO: .byte ' '
 TAM_BUFF_PAL: .word 100
 ULTIMO_CHAR_REDIM: .word
